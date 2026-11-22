@@ -141,7 +141,8 @@ public sealed record Graph(
             .Where(p => p.Row == "")
             .GroupBy(p => p.Column)
             .ToDictionary(g => g.Key, g => g.OrderBy(Order).ToList());
-        var count = Math.Max(top, left.Values.Select(c => c.Count).DefaultIfEmpty(0).Max());
+        var tallest = left.Count == 0 ? 0 : left.Values.Max(c => c.Count);
+        var count = Math.Max(top, tallest);
         foreach (var column in left.Values)
         {
             for (var i = 0; i < column.Count; i++)
@@ -173,10 +174,17 @@ public sealed record Graph(
             found.Sum(e => e.Survived),
             found.Sum(e => e.Unreached));
         if (!mutation.IsMutated) return Mutation.None;
-        var stale = part.Files.Any(file =>
-            found.FirstOrDefault(e => e.Is(file)) is { } entry
-                ? entry.IsStale(file)
-                : file.Extension == ".cs");
+        var stale = part.Files.Any(file => IsStale(file, found));
         return mutation with { Stale = stale };
+    }
+
+    /// <summary>
+    /// Whether the file has changed since the report, or is a C# file new
+    /// since then.
+    /// </summary>
+    private static bool IsStale(CodeFile file, IEnumerable<MutatedFile> found)
+    {
+        var entry = found.FirstOrDefault(e => e.Is(file));
+        return entry is null ? file.Extension == ".cs" : entry.IsStale(file);
     }
 }

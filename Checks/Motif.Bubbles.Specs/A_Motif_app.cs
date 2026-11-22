@@ -105,6 +105,19 @@ public sealed class spreads_the_columns_on_the_left
     }
 
     [Fact]
+    public async Task as_tall_as_the_tallest_with_no_driven_ports()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.Without(
+        [
+            TinyRepo.ForStoringOrders, TinyRepo.ForSendingMail,
+            .. TinyRepo.StoringOrders, .. TinyRepo.SendingMail, .. TinyRepo.Fakes,
+        ]));
+
+        graph.Lanes.Should().Be(2);
+        graph.Find("Specs").Lane.Should().Be(1);
+    }
+
+    [Fact]
     public async Task with_the_Web_App_User_Tasks_and_Application_on_top()
     {
         var graph = await Fixture.Drawn(TinyRepo.All);
@@ -137,6 +150,15 @@ public sealed class links_its_bubbles
         checks.Should().BeEquivalentTo(
             "Specs > UserTasks", "Specs > UserQueries",
             "BrowserSpecs > WebApp");
+    }
+
+    [Fact]
+    public async Task from_the_specs_to_the_one_half_of_the_User_port_there_is()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.Without(TinyRepo.ForSeeing));
+
+        graph.Links.Should().Contain(
+            new Link("Specs", "UserTasks", LinkKind.Checks));
     }
 
     [Fact]

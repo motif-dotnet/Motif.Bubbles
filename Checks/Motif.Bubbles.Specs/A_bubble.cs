@@ -238,6 +238,15 @@ public sealed class of_an_adapter_project_with_two_ways
     }
 
     [Fact]
+    public async Task in_a_lane_each()
+    {
+        var graph = await Fixture.Drawn(Saving);
+
+        graph.Find("adapter:ForSavingViaFolder").Lane.Should().Be(0);
+        graph.Find("adapter:ForSavingViaGist").Lane.Should().Be(1);
+    }
+
+    [Fact]
     public async Task with_each_other_file_in_the_first_that_names_it()
     {
         var graph = await Fixture.Drawn(Saving);
