@@ -8,8 +8,7 @@
 <div class="app @(dragDepth > 0 ? "dragging" : "")" @onclick="CloseMenus"
      @ondragenter="DragEnter" @ondragleave="DragLeave" @ondragover:preventDefault="true" @ondrop="Drop" @ondrop:preventDefault="true">
     <header class="appbar @(Drawn ? "drawn" : "")">
-        @* Temporary: a plain brand until Motif Bubbles is in the web kit's Tools.All, which the ToolSwitcher and HelpDialog need. *@
-        <span class="brand">@SuiteIcons.Mark<span class="word"><span class="motif">Motif</span> <b>Bubbles</b></span><span class="preview-tag">preview</span></span>
+        <ToolSwitcher Current="bubbles" Repo="@Queries.Repo" Open="@(menu == Menu.Tools)" OnToggle="@(() => Toggle(Menu.Tools))" />
 
         @if (Queries.Source is { Kind: not SourceKind.None } source)
         {
@@ -99,28 +98,21 @@
 
     @if (helpOpen)
     {
-        @* Temporary: the kit's HelpDialog frame, written out, until Motif Bubbles is in Tools.All. *@
-        <div class="scrim" @onclick="@(() => helpOpen = false)">
-            <div class="card dialog help-card" role="dialog" aria-label="Help: Motif Bubbles" @onclick:stopPropagation="true">
-                <header><div class="t"><b>Motif Bubbles</b><span>See a Motif app's architecture as bubbles.</span></div>
-                    <button class="x" title="Close" @onclick="@(() => helpOpen = false)">@SuiteIcons.Close</button></header>
-                <div class="body">
-                    <h4>Ways in</h4>
-                    <ul>
-                        <li><b>Open</b> or drop a Motif repo's root folder. Rings come from the latest Stryker JSON report in its <code>StrykerOutput/</code>.</li>
-                        <li><b>Repo</b> reads a public GitHub repo's default branch, with rings from <code>motif/mutation-report.json</code> on its Pages site. The address then links straight to its bubbles.</li>
-                    </ul>
-                    <h4>The bubbles</h4>
-                    <ul>
-                        <li>One per part of the app, in the columns of ports and adapters, with a row for each driven port, sorted by name.</li>
-                        <li>A bubble's area is its lines of code, not counting blank lines or comments.</li>
-                        <li>The ring shows Stryker's mutants: caught, survived, and not reached by any spec. A faded ring is older than the code.</li>
-                        <li>Hover a bubble for all its numbers and to pick out its links. Turn layers off to see what each adds.</li>
-                    </ul>
-                    <p class="help">Everything happens in this browser: nothing is uploaded, and there's no sign-in. The code is mapped by Motif's naming conventions, so a repo that strays from them is drawn badly.</p>
-                </div>
-            </div>
-        </div>
+        <HelpDialog Current="bubbles" OnClose="@(() => helpOpen = false)">
+            <h4>Ways in</h4>
+            <ul>
+                <li><b>Open</b> or drop a Motif repo's root folder. Rings come from the latest Stryker JSON report in its <code>StrykerOutput/</code>.</li>
+                <li><b>Repo</b> reads a public GitHub repo's default branch, with rings from <code>motif/mutation-report.json</code> on its Pages site. The address then links straight to its bubbles.</li>
+            </ul>
+            <h4>The bubbles</h4>
+            <ul>
+                <li>One per part of the app, in the columns of ports and adapters, with a row for each driven port, sorted by name.</li>
+                <li>A bubble's area is its lines of code, not counting blank lines or comments.</li>
+                <li>The ring shows Stryker's mutants: caught, survived, and not reached by any spec. A faded ring is older than the code.</li>
+                <li>Hover a bubble for all its numbers and to pick out its links. Turn layers off to see what each adds.</li>
+            </ul>
+            <p class="help">Everything happens in this browser: nothing is uploaded, and there's no sign-in. The code is mapped by Motif's naming conventions, so a repo that strays from them is drawn badly.</p>
+        </HelpDialog>
     }
 
     <ToastList Toaster="Toaster" />

@@ -5,9 +5,6 @@
 .small { font-size: 12px; }
 .linkish { padding: 0; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 2px; }
 
-/* The plain brand, until the tool switcher can show Motif Bubbles: no menu, so no hover */
-span.brand:hover { background: none; }
-
 /* App bar: the source pills and the progress bar under it */
 .pill .text { overflow: hidden; text-overflow: ellipsis; color: var(--ink); font-weight: 500; }
 .pill + .pill { margin-left: 6px; }

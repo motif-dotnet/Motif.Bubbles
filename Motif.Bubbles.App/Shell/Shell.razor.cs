@@ -10,7 +10,7 @@ namespace Motif.Bubbles.App;
 /// </summary>
 public partial class Shell : IDisposable
 {
-    private enum Menu { None, Theme }
+    private enum Menu { None, Tools, Theme }
 
     private enum Dialog { None, Repo }
 
