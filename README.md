@@ -29,6 +29,8 @@ The app reads the code itself, by Motif's conventions: `For…` ports, `For<Port
 
 Pointed at its own folder or repo, Motif Bubbles draws itself, and its specs use its own code as a fixture.
 
+It deploys to GitHub Pages at <https://motif-dotnet.github.io/Motif.Bubbles/> through [.github/workflows/pages.yml](.github/workflows/pages.yml), which runs the specs and browser specs first. Stryker then runs, and the site goes out again with its report at [`motif/mutation-report.json`](https://motif-dotnet.github.io/Motif.Bubbles/motif/mutation-report.json), so Motif Bubbles draws its own rings.
+
 The scanner and the Stryker report reader live in `Motif.Bubbles.Domain`, with no package references, so the planned `dotnet motif` CLI can reuse them.
 
 ## Build and run
