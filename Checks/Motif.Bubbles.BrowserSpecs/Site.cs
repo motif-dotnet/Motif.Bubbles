@@ -72,16 +72,37 @@ public sealed class Site : IAsyncLifetime
         });
     }
 
-    /// <summary>A browser profile of its own, at this window width.</summary>
+    /// <summary>
+    /// Where a failed step's Playwright trace is kept, for CI to upload.
+    /// </summary>
+    public static string Traces { get; } =
+        Path.Combine(AppContext.BaseDirectory, "traces");
+
+    /// <summary>
+    /// A browser profile of its own, at this window width, traced so a step
+    /// that fails can keep what the browser did.
+    /// </summary>
     public async Task<IBrowserContext> Profile(int width = 1280)
     {
         var profile = await browser!.NewContextAsync(new()
         {
             ViewportSize = new() { Width = width, Height = 812 },
         });
+        await profile.Tracing.StartAsync(new()
+        {
+            Screenshots = true,
+            Snapshots = true,
+        });
         await profile.RouteAsync("**/*", Route);
         return profile;
     }
+
+    /// <summary>Keeps the profile's trace so far, under this name.</summary>
+    public static Task KeepTrace(IBrowserContext profile, string name) =>
+        profile.Tracing.StopAsync(new()
+        {
+            Path = Path.Combine(Traces, $"{name}.zip"),
+        });
 
     /// <summary>Opens the app at this fragment and waits for it to start.</summary>
     public async Task<IPage> Open(

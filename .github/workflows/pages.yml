@@ -49,6 +49,15 @@ jobs:
           dotnet test Checks/Motif.Bubbles.BrowserSpecs -c Release --no-build
           --logger "trx;LogFileName=browser-specs.trx" --results-directory results
 
+      # What the browser did in a step that failed, to open at trace.playwright.dev.
+      - name: Keep the browser traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-traces
+          path: Checks/Motif.Bubbles.BrowserSpecs/bin/Release/net10.0/traces
+          if-no-files-found: ignore
+
       # How many specs there are and how long they take, on the run's page, to keep an eye on as they grow.
       - name: Summary
         if: always()

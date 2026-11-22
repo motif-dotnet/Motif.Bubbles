@@ -19,7 +19,24 @@ public enum Showing
 /// <summary>Opens the app in each mode it shows.</summary>
 public sealed class Modes(Site site)
 {
+    /// <summary>
+    /// Opens the app showing this, keeping a trace when that fails.
+    /// </summary>
     public async Task<IPage> Open(IBrowserContext profile, Showing showing)
+    {
+        try
+        {
+            return await Show(profile, showing);
+        }
+        catch
+        {
+            var width = profile.Pages.FirstOrDefault()?.ViewportSize?.Width;
+            await Site.KeepTrace(profile, $"{showing}-{width}");
+            throw;
+        }
+    }
+
+    private async Task<IPage> Show(IBrowserContext profile, Showing showing)
     {
         switch (showing)
         {
