@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Motif.Bubbles.Fakes</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Motif.Bubbles\Motif.Bubbles.UseCases\Motif.Bubbles.UseCases.csproj" />
+    <ProjectReference Include="..\..\Adapters\Motif.Bubbles.ForOpeningFolders\Motif.Bubbles.ForOpeningFolders.csproj" />
+  </ItemGroup>
+
+</Project>

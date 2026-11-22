@@ -1,0 +1,17 @@
+root = true
+
+[*.cs]
+dotnet_naming_rule.interfaces_no_prefix.symbols = interfaces
+dotnet_naming_rule.interfaces_no_prefix.style = pascal_case
+dotnet_naming_rule.interfaces_no_prefix.severity = warning
+
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_symbols.interfaces.applicable_accessibilities = *
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+# Spec names read as propositions, after Motif.Is
+# (A_folder.with_no_UseCases_project.is_not_a_Motif_app), so spec classes have
+# lower-case names, which CS8981 warns about.
+[Checks/**.cs]
+dotnet_diagnostic.CS8981.severity = none
