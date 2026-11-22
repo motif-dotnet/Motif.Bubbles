@@ -48,10 +48,10 @@ public sealed class counts_the_mutants_in_its_bubbles_files
     public async Task across_all_its_files()
     {
         var graph = await Ringed.Drawn(new Stryker()
-            .Mutated(TinyRepo.Application, killed: 5)
-            .Mutated(TinyRepo.Mail, survived: 1));
+            .Mutated(TinyRepo.Application, killed: 5, survived: 1)
+            .Mutated(TinyRepo.Mail, killed: 2, survived: 3, noCoverage: 1));
 
-        graph.Find("Application").Mutation.Should().Be(new Mutation(5, 1, 0));
+        graph.Find("Application").Mutation.Should().Be(new Mutation(7, 4, 1));
     }
 }
 
@@ -154,6 +154,7 @@ public sealed class is_current
             .Mutated(TinyRepo.Order, killed: 1));
 
         graph.Find("Domain").Mutation.Stale.Should().BeFalse();
+        graph.Find("Domain").Details.Should().NotContain(d => d.Label == "Ring");
     }
 
     [Fact]

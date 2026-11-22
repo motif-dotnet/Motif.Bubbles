@@ -14,6 +14,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Motif.Bubbles\Motif.Bubbles.UseCases\Motif.Bubbles.UseCases.csproj" />
+    <!-- The Web App is the composition root, so it alone knows the real adapters. -->
+    <ProjectReference Include="..\Adapters\Motif.Bubbles.ForOpeningRepos\Motif.Bubbles.ForOpeningRepos.csproj" />
+    <ProjectReference Include="..\Adapters\Motif.Bubbles.ForOpeningFolders\Motif.Bubbles.ForOpeningFolders.csproj" />
   </ItemGroup>
 
 </Project>

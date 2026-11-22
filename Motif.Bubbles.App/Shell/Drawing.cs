@@ -1,0 +1,160 @@
+using System.Globalization;
+
+namespace Motif.Bubbles.App;
+
+/// <summary>
+/// Where the graph's bubbles, rings and links go on the page, in the SVG's
+/// own units: the view's half of the layout, over the columns and lanes the
+/// graph gives each bubble.
+/// </summary>
+public sealed class Drawing
+{
+    public const double ColumnWidth = 210;
+
+    // Lanes are at least this tall, and taller when there are few, so the
+    // graph is never much wider than twice its height.
+    private const double MinLaneHeight = 140;
+    private const double MinHeightPerWidth = 0.5;
+
+    // Room for the column headings above the first lane.
+    public const double Top = 56;
+
+    // From the bubble's edge to the middle of its ring, which is 5 wide.
+    private const double RingGap = 4.5;
+
+    private readonly Dictionary<Column, int> columns;
+    private readonly Dictionary<string, Bubble> byId;
+    private readonly bool sized;
+    private readonly bool rings;
+
+    public Drawing(Graph graph, ForSeeing seeing)
+    {
+        Graph = graph;
+        columns = graph.Columns
+            .Select((column, i) => (column, i))
+            .ToDictionary(x => x.column, x => x.i);
+        byId = graph.Bubbles.ToDictionary(b => b.Id);
+        sized = seeing.Shows(Layer.Size);
+        rings = seeing.Shows(Layer.Rings);
+        HasRings = graph.Bubbles.Any(b => b.Mutation.IsMutated);
+        LaneHeight = Math.Max(MinLaneHeight,
+            (Width * MinHeightPerWidth - Top) / Math.Max(1, graph.Lanes));
+    }
+
+    public double LaneHeight { get; }
+
+    public Graph Graph { get; }
+
+    /// <summary>
+    /// Whether any bubble has a ring, so a bubble with none stands out as
+    /// not mutated.
+    /// </summary>
+    public bool HasRings { get; }
+
+    public double Width => Math.Max(1, columns.Count) * ColumnWidth;
+
+    public double Height => Top + Math.Max(1, Graph.Lanes) * LaneHeight;
+
+    public double X(Column column) => (columns[column] + 0.5) * ColumnWidth;
+
+    public double X(Bubble bubble) => X(bubble.Column);
+
+    public double Y(Bubble bubble) => Top + (bubble.Lane + 0.5) * LaneHeight;
+
+    /// <summary>
+    /// Its area stands for its lines of code, with a smallest size so even
+    /// a port can be pointed at.
+    /// </summary>
+    public double Radius(Bubble bubble) => sized
+        ? Math.Max(15, 1.85 * Math.Sqrt(bubble.Size.LinesOfCode))
+        : 26;
+
+    public bool IsRinged(Bubble bubble) => rings && bubble.Mutation.IsMutated;
+
+    /// <summary>
+    /// Real code Stryker could have mutated but didn't, hatched.
+    /// </summary>
+    public bool IsUnmutated(Bubble bubble) =>
+        HasRings && bubble.Kind == BubbleKind.Real && !bubble.Mutation.IsMutated;
+
+    /// <summary>
+    /// The baseline of the bubble's name, under it and its ring.
+    /// </summary>
+    public double NameY(Bubble bubble) =>
+        Y(bubble) + Radius(bubble) + (IsRinged(bubble) ? 22 : 17);
+
+    /// <summary>
+    /// The ring's arcs, clockwise from the top: caught, survived, then
+    /// unreached, each with a small gap.
+    /// </summary>
+    public IReadOnlyList<Arc> Ring(Bubble bubble)
+    {
+        var m = bubble.Mutation;
+        var (cx, cy, r) = (X(bubble), Y(bubble), Radius(bubble) + RingGap);
+        var arcs = new List<Arc>();
+        var start = 0.0;
+        const double gap = 0.04;
+        foreach (var (count, part) in new[]
+                 {
+                     (m.Caught, "caught"), (m.Survived, "survived"),
+                     (m.Unreached, "unreached"),
+                 })
+        {
+            if (count == 0) continue;
+            var span = 2 * Math.PI * count / m.Total;
+            if (span >= 2 * Math.PI - 1e-6)
+            {
+                arcs.Add(new Arc(Circle(cx, cy, r), part));
+                break;
+            }
+            var trim = span > 2 * gap ? gap / 2 : 0;
+            arcs.Add(new Arc(
+                ArcPath(cx, cy, r, start + trim, start + span - trim), part));
+            start += span;
+        }
+        return arcs;
+    }
+
+    /// <summary>
+    /// A link's line, from the edge of one bubble to just short of the
+    /// other's, so its arrow shows.
+    /// </summary>
+    public (double X1, double Y1, double X2, double Y2) Line(Link link)
+    {
+        var (a, b) = (byId[link.From], byId[link.To]);
+        var (ax, ay, bx, by) = (X(a), Y(a), X(b), Y(b));
+        var (dx, dy) = (bx - ax, by - ay);
+        var d = Math.Max(1, Math.Sqrt(dx * dx + dy * dy));
+        var from = Radius(a) + (IsRinged(a) ? 6 : 2);
+        var to = Radius(b) + (IsRinged(b) ? 8 : 4);
+        return (ax + dx * from / d, ay + dy * from / d,
+            bx - dx * to / d, by - dy * to / d);
+    }
+
+    /// <summary>
+    /// A number as SVG wants it, whatever the culture.
+    /// </summary>
+    public static string N(double value) =>
+        value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private static string ArcPath(
+        double cx, double cy, double r, double from, double to)
+    {
+        var (x0, y0) = (cx + r * Math.Sin(from), cy - r * Math.Cos(from));
+        var (x1, y1) = (cx + r * Math.Sin(to), cy - r * Math.Cos(to));
+        var large = to - from > Math.PI ? 1 : 0;
+        return $"M{N(x0)} {N(y0)} A{N(r)} {N(r)} 0 {large} 1 {N(x1)} {N(y1)}";
+    }
+
+    // A whole ring, as two half arcs: one arc can't start and end at the
+    // same point.
+    private static string Circle(double cx, double cy, double r) =>
+        $"M{N(cx)} {N(cy - r)} A{N(r)} {N(r)} 0 1 1 {N(cx)} {N(cy + r)} "
+        + $"A{N(r)} {N(r)} 0 1 1 {N(cx)} {N(cy - r)}";
+}
+
+/// <summary>
+/// One arc of a mutation ring, as an SVG path, and which of the mutants it
+/// stands for: "caught", "survived" or "unreached".
+/// </summary>
+public sealed record Arc(string Path, string Part);

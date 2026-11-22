@@ -1,0 +1,23 @@
+@* Motif.NET shared web kit: copied from github.com/motif-dotnet/.github/tree/main/brand/web. Don't edit an app's copy. *@
+@namespace Motif.Suite
+@using Microsoft.AspNetCore.Components.Web
+
+@* System, Light or Dark. The app keeps the choice in localStorage under "motif-theme", which the Motif tools share. *@
+<div class="menu @(Open ? "open" : "")">
+    <button class="cmd icon" title="Theme" aria-haspopup="menu" aria-expanded="@(Open ? "true" : "false")"
+            @onclick="OnToggle" @onclick:stopPropagation="true">@ThemeChoices.IconFor(Theme)</button>
+    <div class="menu-list narrow" role="menu">
+        <ThemeChoices Theme="@Theme" ThemeChanged="ThemeChanged" />
+    </div>
+</div>
+
+@code {
+    /// <summary>"system", "light" or "dark".</summary>
+    [Parameter] public string Theme { get; set; } = "system";
+
+    [Parameter] public EventCallback<string> ThemeChanged { get; set; }
+
+    [Parameter] public bool Open { get; set; }
+
+    [Parameter] public EventCallback OnToggle { get; set; }
+}

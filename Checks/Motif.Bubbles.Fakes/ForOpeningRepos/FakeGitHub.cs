@@ -40,6 +40,8 @@ public sealed class FakeGitHub : HttpMessageHandler
     /// </summary>
     public List<string> Requests { get; } = [];
 
+    private TaskCompletionSource held = Released();
+
     /// <summary>
     /// Puts files on a public repo's default branch.
     /// </summary>
@@ -68,25 +70,38 @@ public sealed class FakeGitHub : HttpMessageHandler
         return this;
     }
 
-    protected override Task<HttpResponseMessage> SendAsync(
+    /// <summary>
+    /// Holds every answer back until <see cref="Release"/>, as a slow network
+    /// would.
+    /// </summary>
+    public FakeGitHub Hold()
+    {
+        held = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        return this;
+    }
+
+    public void Release() => held.TrySetResult();
+
+    protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var url = request.RequestUri!;
         lock (Requests) Requests.Add(url.AbsoluteUri);
+        await held.Task;
         if (Unreachable) throw new HttpRequestException("Failed to fetch");
         if (request.Method != HttpMethod.Get || url.Scheme != "https")
-            return Answer(HttpStatusCode.NotFound);
+            return await Answer(HttpStatusCode.NotFound);
         var parts = url.AbsolutePath.TrimStart('/').Split('/')
             .Select(Uri.UnescapeDataString)
             .ToArray();
-        return url.Host switch
+        return await (url.Host switch
         {
             "api.github.com" => Tree(parts, url.Query),
             "raw.githubusercontent.com" => File(parts),
             var host when host.EndsWith(".github.io") =>
                 Page(host[..^".github.io".Length], parts),
             _ => Answer(HttpStatusCode.NotFound),
-        };
+        });
     }
 
     private Task<HttpResponseMessage> Tree(string[] parts, string query)
@@ -136,8 +151,11 @@ public sealed class FakeGitHub : HttpMessageHandler
             + string.Join('/', parts);
         if (pages.TryGetValue(own, out var text))
             return Answer(HttpStatusCode.OK, text);
-        if (parts is not [var name, .. var path])
+        if (parts is not [var name, .. var path]
+            || name.Equals($"{owner}.github.io", StringComparison.OrdinalIgnoreCase))
+        {
             return Answer(HttpStatusCode.NotFound);
+        }
         var key = Key($"{owner}/{name}") + "|" + string.Join('/', path);
         return pages.TryGetValue(key, out text)
             ? Answer(HttpStatusCode.OK, text)
@@ -158,6 +176,13 @@ public sealed class FakeGitHub : HttpMessageHandler
     }
 
     private static string Key(string repo) => repo.ToLowerInvariant();
+
+    private static TaskCompletionSource Released()
+    {
+        var released = new TaskCompletionSource();
+        released.SetResult();
+        return released;
+    }
 
     private static Task<HttpResponseMessage> Answer(
         HttpStatusCode status, string text = "") =>

@@ -22,6 +22,20 @@ public sealed class start
     }
 }
 
+public sealed class are_offered
+{
+    [Fact]
+    public void in_order_each_in_words()
+    {
+        var f = new Fixture();
+
+        f.Queries.Layers.Select(l => l.Label).Should().Equal(
+            "Size by lines of code", "Mutation rings", "Numbers inside",
+            "Stats under names", "Check links", "Uses links",
+            "Implements links", "Wiring links", "Column bands");
+    }
+}
+
 public sealed class turned_on
 {
     [Fact]

@@ -172,12 +172,15 @@ public sealed class with_a_report_that_cannot_be_read
         f.Queries.Source.Report.Should().Be("");
     }
 
-    [Fact]
-    public async Task has_no_rings_and_says_why_when_it_has_no_files()
+    [Theory]
+    [InlineData("""{ "schemaVersion": "2" }""")]
+    [InlineData("""{ "files": [] }""")]
+    public async Task has_no_rings_and_says_why_when_it_has_no_files(
+        string json)
     {
         var f = await Fixture.Picked(TinyRepo.With(new CodeFile(
             "StrykerOutput/2026-11-21.19-17-41/reports/mutation-report.json",
-            """{ "schemaVersion": "2" }""")));
+            json)));
 
         f.Queries.RingsNote.Text.Should().Be(
             "So the bubbles have no rings. It has no files: is it a Stryker "

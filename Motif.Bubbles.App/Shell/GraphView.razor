@@ -1,0 +1,203 @@
+@namespace Motif.Bubbles.App
+@inject Browser Browser
+
+@* The graph of bubbles, after the agreed mockup, with the layers and the key beside it. *@
+<div class="stage">
+    <div class="graph">
+        <svg class="bubbles @(hovered == "" ? "" : "dim")" viewBox="0 0 @N(drawing.Width) @N(drawing.Height)"
+             preserveAspectRatio="xMidYMin meet" role="img" aria-label="@($"Bubble graph of {Seeing.Source.Name}'s architecture")">
+            <defs>
+                <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <rect width="6" height="6" class="hatch-back" />
+                    <line x1="0" y1="0" x2="0" y2="6" class="hatch-line" />
+                </pattern>
+                @foreach (var kind in new[] { "uses", "checks", "wires" })
+                {
+                    <marker id="@($"a-{kind}")" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                        <path d="M0 1 L9 5 L0 9 z" class="@($"head {kind}")" />
+                    </marker>
+                }
+                <marker id="a-implements" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="9" markerHeight="9" orient="auto">
+                    <path d="M1 1 L11 6 L1 11 z" class="head implements" />
+                </marker>
+            </defs>
+            <g class="viewport">
+                @foreach (var column in drawing.Graph.Columns)
+                {
+                    var x = drawing.X(column);
+                    if (Seeing.Shows(Layer.Bands) && Index(column) % 2 == 1)
+                    {
+                        <rect class="band" x="@N(x - Drawing.ColumnWidth / 2)" y="0" width="@N(Drawing.ColumnWidth)" height="@N(drawing.Height)" />
+                    }
+                    @* In a g, as a bare text element in code is Razor's own tag. *@
+                    <g><text class="col-head" x="@N(x)" y="30" text-anchor="middle">@column.Heading()</text></g>
+                }
+                <g class="links">
+                    @foreach (var link in Seeing.ShownLinks)
+                    {
+                        var (x1, y1, x2, y2) = drawing.Line(link);
+                        var kind = link.Kind.ToString().ToLowerInvariant();
+                        <line class="@($"link {kind} {(Touches(link) ? "hot" : "")}")" x1="@N(x1)" y1="@N(y1)" x2="@N(x2)" y2="@N(y2)"
+                              marker-end="@($"url(#a-{kind})")" />
+                    }
+                </g>
+                <g class="nodes">
+                    @foreach (var bubble in drawing.Graph.Bubbles)
+                    {
+                        var (cx, cy, r) = (drawing.X(bubble), drawing.Y(bubble), drawing.Radius(bubble));
+                        var nameY = drawing.NameY(bubble);
+                        <g @key="bubble.Id" class="@NodeClass(bubble)" tabindex="0" aria-label="@($"{bubble.Name}: {bubble.Stats}")"
+                           @onmouseenter="() => Hover(bubble)" @onmouseleave="Unhover"
+                           @onfocus="() => Hover(bubble)" @onblur="Unhover">
+                            <circle class="body" cx="@N(cx)" cy="@N(cy)" r="@N(r)" />
+                            @if (drawing.IsRinged(bubble))
+                            {
+                                <g class="@(bubble.Mutation.Stale ? "ring stale" : "ring")">
+                                    @foreach (var arc in drawing.Ring(bubble))
+                                    {
+                                        <path d="@arc.Path" class="@arc.Part" />
+                                    }
+                                </g>
+                            }
+                            @if (Seeing.Shows(Layer.Inside) && bubble.Inside != "")
+                            {
+                                <g><text class="inside" x="@N(cx)" y="@N(cy + 4)" text-anchor="middle">@bubble.Inside</text></g>
+                            }
+                            <text class="name" x="@N(cx)" y="@N(nameY)" text-anchor="middle">@bubble.Name</text>
+                            @if (Seeing.Shows(Layer.Stats))
+                            {
+                                <g><text class="stat" x="@N(cx)" y="@N(nameY + 15)" text-anchor="middle">@bubble.Stats</text></g>
+                            }
+                        </g>
+                    }
+                </g>
+            </g>
+        </svg>
+        <button class="cmd icon fit" title="Show the whole graph" @onclick="Fit">@Icons.Fit</button>
+        <div class="tip" style="@(hovered == "" ? "display:none" : "")">
+            @if (hovered != "" && drawing.Graph.Bubbles.FirstOrDefault(b => b.Id == hovered) is { } shown)
+            {
+                <b>@shown.Name</b>
+                <div class="role">@shown.Role</div>
+                @foreach (var detail in drawing.Graph.Details(shown))
+                {
+                    <div class="row"><span>@detail.Label</span><span>@detail.Value</span></div>
+                }
+            }
+        </div>
+    </div>
+    <aside class="side">
+        <h3>Layers</h3>
+        @foreach (var choice in Seeing.Layers)
+        {
+            <label><input type="checkbox" checked="@choice.On" @onchange="e => Tasks.ShowLayer(choice.Layer, e.Value is true)" /> @choice.Label</label>
+        }
+
+        <h3>Bubbles</h3>
+        <div class="key"><svg width="22" height="22"><circle cx="11" cy="11" r="9" class="k-real" /></svg> Real code</div>
+        <div class="key"><svg width="22" height="22"><circle cx="11" cy="11" r="9" class="k-real k-fake" /></svg> Fake</div>
+        <div class="key"><svg width="22" height="22"><circle cx="11" cy="11" r="9" class="k-port" /></svg> Port (interface)</div>
+        <div class="key"><svg width="22" height="22"><circle cx="11" cy="11" r="9" class="k-specs" /></svg> Specs</div>
+        @if (drawing.HasRings)
+        {
+            <div class="key"><svg width="22" height="22"><circle cx="11" cy="11" r="9" class="k-real" fill="url(#hatch)" /></svg> Not mutated by Stryker</div>
+        }
+        <div class="key muted">Area: lines of code</div>
+
+        <h3>Mutation ring</h3>
+        <div class="key"><svg width="22" height="10"><rect width="22" height="5" y="2" rx="2" class="k-caught" /></svg> Caught (killed, timed out)</div>
+        <div class="key"><svg width="22" height="10"><rect width="22" height="5" y="2" rx="2" class="k-survived" /></svg> Survived</div>
+        <div class="key"><svg width="22" height="10"><rect width="22" height="5" y="2" rx="2" class="k-unreached" /></svg> No spec reaches it</div>
+        <div class="key"><svg width="22" height="10"><rect width="22" height="5" y="2" rx="2" class="k-caught k-stale" /></svg> Faded: older than the code</div>
+
+        <h3>Links</h3>
+        <div class="key"><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" class="link checks" /></svg> Checks through</div>
+        <div class="key"><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" class="link uses" /></svg> Uses</div>
+        <div class="key"><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" class="link implements" /></svg> Implements</div>
+        <div class="key"><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" class="link wires" /></svg> Wires up (composition)</div>
+        <p class="muted hint">Hover a bubble for all its numbers and to pick out its links. Drag to pan, and scroll to zoom.</p>
+
+        @if (RepoLink != "")
+        {
+            <h3>Link</h3>
+            <p class="muted hint">This address opens @Seeing.Repo's bubbles, from its latest code.</p>
+            <button class="ghost small" @onclick="CopyRepoLink">@SuiteIcons.Link @(Copied ? "Copied" : "Copy link")</button>
+        }
+    </aside>
+</div>
+
+@code {
+    private Drawing drawing = null!;
+    private string hovered = "";
+    private IReadOnlySet<string> near = new HashSet<string>();
+    private bool panning;
+
+    [Parameter, EditorRequired] public ForSeeing Seeing { get; set; } = null!;
+
+    [Parameter, EditorRequired] public ForDoing Tasks { get; set; } = null!;
+
+    /// <summary>
+    /// The address that opens this repo's bubbles, or "" when it isn't a
+    /// repo.
+    /// </summary>
+    [Parameter] public string RepoLink { get; set; } = "";
+
+    [Parameter] public EventCallback CopyRepoLink { get; set; }
+
+    [Parameter] public bool Copied { get; set; }
+
+    protected override void OnParametersSet() => Redraw();
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (panning) return;
+        panning = true;
+        Browser.PanAndZoom(".graph");
+    }
+
+    // The layers change what's drawn, so every render starts from them.
+    protected override bool ShouldRender()
+    {
+        Redraw();
+        return true;
+    }
+
+    private void Redraw()
+    {
+        drawing = new Drawing(Seeing.Graph, Seeing);
+        if (hovered != "" && drawing.Graph.Bubbles.All(b => b.Id != hovered))
+            Unhover();
+        else if (hovered != "") near = Seeing.NeighboursOf(hovered);
+    }
+
+    private void Hover(Bubble bubble)
+    {
+        hovered = bubble.Id;
+        near = Seeing.NeighboursOf(bubble.Id);
+    }
+
+    private void Unhover()
+    {
+        hovered = "";
+        near = new HashSet<string>();
+    }
+
+    private bool Touches(Link link) =>
+        hovered != "" && (link.From == hovered || link.To == hovered);
+
+    private string NodeClass(Bubble bubble) => string.Join(' ',
+        new[]
+        {
+            "node",
+            bubble.Kind.ToString().ToLowerInvariant(),
+            drawing.IsUnmutated(bubble) ? "unmutated" : "",
+            near.Contains(bubble.Id) ? "hot" : "",
+        }.Where(c => c != ""));
+
+    private int Index(Column column) =>
+        drawing.Graph.Columns.ToList().IndexOf(column);
+
+    private void Fit() => Browser.Fit(".graph");
+
+    private static string N(double value) => Drawing.N(value);
+}

@@ -197,8 +197,140 @@ public sealed class links_its_bubbles
     }
 }
 
+public sealed class links_only
+{
+    [Fact]
+    public async Task bubbles_that_are_there()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.Without(
+            [.. TinyRepo.BrowserSpecs, .. TinyRepo.Fakes, .. TinyRepo.Domain]));
+
+        var ids = graph.Bubbles.Select(b => b.Id).ToHashSet();
+        graph.Links.Should().NotBeEmpty();
+        graph.Links.Should().OnlyContain(
+            l => ids.Contains(l.From) && ids.Contains(l.To));
+    }
+}
+
+public sealed class with_projects_inside_each_other
+{
+    [Fact]
+    public async Task gives_each_file_to_the_project_nearest_it()
+    {
+        var graph = await Fixture.Drawn(
+        [
+            new("Motif.Tiny.App.csproj", "<Project />"),
+            new("Program.cs", "var app = 1;\n"),
+            new("Motif.Tiny.Domain/Motif.Tiny.Domain.csproj", "<Project />"),
+            new("Motif.Tiny.Domain/Order.cs", "class Order { }\n"),
+        ]);
+
+        graph.Find("WebApp").Size.Files.Should().Be(1);
+        graph.Find("Domain").Size.Files.Should().Be(1);
+    }
+}
+
+public sealed class with_a_project_of_no_files
+{
+    [Fact]
+    public async Task draws_it_with_no_code()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.Without(TinyRepo.Order));
+
+        graph.Find("Domain").Size.Should().Be(new Size(0, 0, 0));
+    }
+}
+
+public sealed class with_use_cases_that_are_all_ports
+{
+    [Fact]
+    public async Task has_no_Application()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.Without(
+            TinyRepo.Application, TinyRepo.Mail));
+
+        graph.Bubbles.Should().NotContain(b => b.Id == "Application");
+    }
+}
+
+public sealed class with_a_port_outside_Ports
+{
+    [Fact]
+    public async Task counts_it_as_part_of_the_Application()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.With(
+            new CodeFile("Motif.Tiny/Motif.Tiny.UseCases/ForPaying.cs",
+                "public interface ForPaying { }\n")));
+
+        graph.Bubbles.Should().NotContain(b => b.Id == "port:ForPaying");
+        graph.Find("Application").Size.Files.Should().Be(3);
+    }
+}
+
+public sealed class with_an_adapter_project_of_no_Via_class
+{
+    [Fact]
+    public async Task draws_one_adapter_named_for_its_port()
+    {
+        var graph = await Fixture.Drawn(
+        [
+            new("Adapters/X.ForPaying/X.ForPaying.csproj", "<Project />"),
+            new("Adapters/X.ForPaying/Payments.cs", "class Payments { }\n"),
+        ]);
+
+        var adapter = graph.Find("adapter:ForPaying");
+        adapter.Name.Should().Be("For paying adapter");
+        adapter.Role.Should().Be("Real adapter (ForPaying)");
+    }
+}
+
+public sealed class with_a_project_named_For_but_for_no_port
+{
+    [Theory]
+    [InlineData("X.Format")]
+    [InlineData("X.For")]
+    public async Task draws_it_as_a_library(string name)
+    {
+        var graph = await Fixture.Drawn(
+        [
+            new($"{name}/{name}.csproj", "<Project />"),
+            new($"{name}/Code.cs", "class Code { }\n"),
+        ]);
+
+        graph.Bubbles.Select(b => b.Id).Should().Equal("library:" + name);
+    }
+
+    [Fact]
+    public async Task named_for_the_User_port_draws_it_as_a_library()
+    {
+        var graph = await Fixture.Drawn(
+        [
+            new("Adapters/X.ForDoing/X.ForDoing.csproj", "<Project />"),
+            new("Adapters/X.ForDoing/ForDoingViaWeb.cs", "class A { }\n"),
+        ]);
+
+        graph.Bubbles.Select(b => b.Id).Should().Equal("library:X.ForDoing");
+    }
+}
+
 public sealed class leaves_out
 {
+    [Theory]
+    [InlineData("obj")]
+    [InlineData(".git")]
+    [InlineData(".vs")]
+    [InlineData("node_modules")]
+    [InlineData("StrykerOutput")]
+    [InlineData("TestResults")]
+    [InlineData("_TEMP_DO_NOT_MERGE")]
+    public async Task what_is_in_tools_folders(string folder)
+    {
+        var graph = await Fixture.Drawn(TinyRepo.With(new CodeFile(
+            $"Motif.Tiny/Motif.Tiny.Domain/{folder}/Extra.cs", "class Extra { }")));
+
+        graph.Find("Domain").Size.Files.Should().Be(1);
+    }
+
     [Fact]
     public async Task the_web_kits_copy_and_build_output()
     {
@@ -264,5 +396,15 @@ public sealed class with_fakes_in_a_folder_named_for_no_port
         fake.Lane.Should().Be(3);
         fake.Role.Should().Be("Fake (FixedClock)");
         graph.Lanes.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task or_in_no_folder_puts_them_there_too()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.With(
+            new CodeFile("Checks/Motif.Tiny.Fakes/FixedClock.cs",
+                "class FixedClock { }\n")));
+
+        graph.Find("fake:FixedClock").Lane.Should().Be(3);
     }
 }

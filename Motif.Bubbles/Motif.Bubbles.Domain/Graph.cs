@@ -167,19 +167,16 @@ public sealed record Graph(
     /// </summary>
     private static Mutation Ring(Part part, MutationReport report)
     {
-        var entries = part.Files
-            .Select(f => (File: f, Entry: report.Files.FirstOrDefault(e => e.Is(f))))
-            .ToList();
-        var found = entries.Where(x => x.Entry is not null).ToList();
-        if (found.Count == 0) return Mutation.None;
+        var found = report.Files.Where(e => part.Files.Any(e.Is)).ToList();
         var mutation = new Mutation(
-            found.Sum(x => x.Entry!.Caught),
-            found.Sum(x => x.Entry!.Survived),
-            found.Sum(x => x.Entry!.Unreached));
+            found.Sum(e => e.Caught),
+            found.Sum(e => e.Survived),
+            found.Sum(e => e.Unreached));
         if (!mutation.IsMutated) return Mutation.None;
-        var stale = entries.Any(x => x.Entry is null
-            ? x.File.Extension == ".cs"
-            : x.Entry.IsStale(x.File));
+        var stale = part.Files.Any(file =>
+            found.FirstOrDefault(e => e.Is(file)) is { } entry
+                ? entry.IsStale(file)
+                : file.Extension == ".cs");
         return mutation with { Stale = stale };
     }
 }

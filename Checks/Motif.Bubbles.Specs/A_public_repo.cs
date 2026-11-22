@@ -82,6 +82,76 @@ public sealed class named
     }
 }
 
+public sealed class named_as_no_repo_can_be
+{
+    [Theory]
+    [InlineData("motif-dotnet/Motif.Tiny/docs")]
+    [InlineData("https://github.com/motif-dotnet")]
+    [InlineData("-motif/Motif.Tiny")]
+    [InlineData("motif-dotnet/..")]
+    [InlineData("motif-dotnet/Motif Tiny")]
+    public async Task cannot_be_drawn(string repo)
+    {
+        var f = Tiny.Committed();
+
+        await f.Tasks.OpenRepo(repo);
+
+        f.Queries.Problem.Text.Should().EndWith(
+            "isn't a GitHub repo. Give it as owner/name, such as "
+            + "motif-dotnet/Motif.Glossary.");
+        f.GitHub.Requests.Should().BeEmpty();
+    }
+}
+
+public sealed class still_being_read
+{
+    [Fact]
+    public async Task is_loading()
+    {
+        var f = Tiny.Committed();
+        f.GitHub.Hold();
+
+        var reading = f.Tasks.OpenRepo(Tiny.Repo);
+
+        f.Queries.Loading.Should().BeTrue();
+        f.GitHub.Release();
+        await reading;
+        f.Queries.Loading.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task is_dropped_when_a_folder_is_opened_meanwhile()
+    {
+        var f = Tiny.Committed();
+        f.GitHub.Hold();
+        var reading = f.Tasks.OpenRepo(Tiny.Repo);
+        f.LocalFolders.WillPick("Motif.Tiny", TinyRepo.All);
+
+        await f.Tasks.OpenFolder();
+        f.Queries.Loading.Should().BeFalse();
+        f.GitHub.Release();
+        await reading;
+
+        f.Queries.Source.Kind.Should().Be(SourceKind.Folder);
+        f.Queries.Loading.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task is_dropped_when_another_repo_is_opened_meanwhile()
+    {
+        var f = Tiny.Committed();
+        f.GitHub.Commit("motif-dotnet/Motif.Other", TinyRepo.All);
+        f.GitHub.Hold();
+        var first = f.Tasks.OpenRepo(Tiny.Repo);
+        var second = f.Tasks.OpenRepo("motif-dotnet/Motif.Other");
+
+        f.GitHub.Release();
+        await Task.WhenAll(first, second);
+
+        f.Queries.Repo.Should().Be("motif-dotnet/Motif.Other");
+    }
+}
+
 public sealed class linked_to
 {
     [Fact]

@@ -19,13 +19,18 @@ public static class TinyRepo
         await builder.Build().RunAsync();
         """);
 
-    // 3 lines of code: the Razor comment doesn't count.
+    // 3 lines of code: the Razor and HTML comments don't count.
     public static readonly CodeFile Shell = new(
         "Motif.Tiny.App/Shell.razor",
         """
         @* The one page. *@
         @inject ForDoing Tasks
+        @*
+            Orders, newest first.
+        *@
         <h1>Orders</h1>
+        <!-- One button
+             for now. -->
         <button @onclick="Tasks.Place">Place</button>
         """);
 

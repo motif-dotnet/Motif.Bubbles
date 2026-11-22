@@ -4,7 +4,7 @@ namespace Motif.Bubbles;
 
 /// <summary>
 /// Maps a repo's files onto its architectural objects, by Motif's naming
-/// conventions: a project is a folder with a .csproj, and its name says what
+/// conventions: a project is a folder with a .csproj, whose name says what
 /// it holds (X.Domain, X.UseCases, X.App, X.ForSomething under Adapters/,
 /// X.Fakes, X.Specs, X.BrowserSpecs). A repo that strays from them is mapped
 /// badly, and the conventions are still moving.
@@ -31,12 +31,12 @@ internal static partial class Scanner
     public static IReadOnlyList<Part> Parts(IEnumerable<CodeFile> files)
     {
         var wanted = files.Where(f => CodeFile.IsWanted(f.Path)).ToList();
-        var projects = wanted
+        // Each project's folder, and its name from its project file.
+        var names = wanted
             .Where(f => f.IsProjectFile)
-            .Select(f => Folder(f.Path))
-            .Distinct()
-            .OrderByDescending(p => p.Length)
-            .ToList();
+            .GroupBy(f => Folder(f.Path))
+            .ToDictionary(g => g.Key, g => Stem(g.First()));
+        var projects = names.Keys.OrderByDescending(p => p.Length).ToList();
         var byProject = wanted
             .Where(f => !f.IsProjectFile)
             .Select(f => (File: f, Project: projects.FirstOrDefault(p =>
@@ -49,15 +49,14 @@ internal static partial class Scanner
         foreach (var project in projects.OrderBy(p => p, StringComparer.Ordinal))
         {
             var inside = byProject.GetValueOrDefault(project) ?? [];
-            parts.AddRange(PartsOf(project, inside));
+            parts.AddRange(PartsOf(project, names[project], inside));
         }
         return parts;
     }
 
     private static IEnumerable<Part> PartsOf(
-        string project, IReadOnlyList<CodeFile> files)
+        string project, string name, IReadOnlyList<CodeFile> files)
     {
-        var name = project[(project.LastIndexOf('/') + 1)..];
         var last = name[(name.LastIndexOf('.') + 1)..];
         if (name.EndsWith(".BrowserSpecs"))
         {

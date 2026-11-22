@@ -45,6 +45,15 @@ public sealed class counts_its_files_and_types
         graph.Find("Domain").Size.Should().Be(new Size(7, 1, 2));
         graph.Find("WebApp").Size.Types.Should().Be(1);
     }
+
+    [Fact]
+    public async Task across_its_files()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.All);
+
+        // MotifTinyApplication.cs and Mail.cs, a type each.
+        graph.Find("Application").Size.Types.Should().Be(2);
+    }
 }
 
 public sealed class of_specs_counts_them
@@ -56,6 +65,16 @@ public sealed class of_specs_counts_them
 
         graph.Find("Specs").Specs.Should().Be(3);
         graph.Find("BrowserSpecs").Specs.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task across_its_files()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.With(new CodeFile(
+            "Checks/Motif.Tiny.Specs/Mailing.cs",
+            "[Fact] public void sends() { }\n[Fact] public void retries() { }\n")));
+
+        graph.Find("Specs").Specs.Should().Be(3 + 2);
     }
 }
 
@@ -69,6 +88,53 @@ public sealed class of_a_port_counts_its_members
         graph.Find("UserTasks").Members.Should().Be(2);
         graph.Find("UserQueries").Members.Should().Be(1);
         graph.Find("port:ForStoringOrders").Members.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task and_not_those_of_other_types_in_its_file()
+    {
+        var port = new CodeFile(
+            "Motif.Tiny/Motif.Tiny.UseCases/Ports/ForPaying.cs",
+            """
+            namespace Motif.Tiny;
+
+            public sealed record Payment(int Pence)
+            {
+                public static Payment None { get; } = new(0);
+            }
+
+            public interface ForPaying
+            {
+                Task Pay(Payment payment);
+
+                bool CanPay { get; }
+            }
+
+            public sealed class Receipt
+            {
+                public void Print();
+            }
+            """);
+
+        var graph = await Fixture.Drawn(TinyRepo.With(port));
+
+        graph.Find("port:ForPaying").Members.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task with_its_brace_on_the_same_line()
+    {
+        var port = new CodeFile(
+            "Motif.Tiny/Motif.Tiny.UseCases/Ports/ForPaying.cs",
+            """
+            public interface ForPaying {
+                Task Pay(int pence);
+            }
+            """);
+
+        var graph = await Fixture.Drawn(TinyRepo.With(port));
+
+        graph.Find("port:ForPaying").Members.Should().Be(1);
     }
 
     [Fact]
@@ -102,6 +168,33 @@ public sealed class is_named
             "Fake for storing orders (FakeShelf)");
         graph.Find("WebApp").Role.Should().Be(
             "Driving adapter (Motif.Tiny.App)");
+        graph.Find("UserQueries").Role.Should().Be(
+            "User port: the queries (ForSeeing)");
+        graph.Find("Domain").Role.Should().Be("Domain: the app's own rules");
+        graph.Find("Specs").Role.Should().Be("Specs: drive the User port");
+        graph.Find("BrowserSpecs").Role.Should().Be(
+            "Browser specs: drive the Web App in a browser");
+    }
+
+    [Fact]
+    public async Task as_use_cases_when_no_class_is_the_Application()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.Without(TinyRepo.Application));
+
+        graph.Find("Application").Role.Should().Be("Use cases");
+    }
+
+    [Fact]
+    public async Task as_a_library_by_its_project()
+    {
+        var graph = await Fixture.Drawn(
+        [
+            new("Motif.Words/Motif.Words.csproj", "<Project />"),
+            new("Motif.Words/Words.cs", "class Words { }\n"),
+        ]);
+
+        graph.Find("library:Motif.Words").Role.Should().Be(
+            "Library (Motif.Words)");
     }
 
     [Theory]
