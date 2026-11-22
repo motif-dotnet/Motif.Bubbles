@@ -430,3 +430,62 @@ public sealed class with_fakes_in_a_folder_named_for_no_port
         graph.Find("fake:FixedClock").Lane.Should().Be(3);
     }
 }
+
+public sealed class with_fake_code_that_other_fakes_extend
+{
+    /// <summary>
+    /// Motif.Tiny with a FakeStore in a folder named for no port, which the
+    /// fake shelf and the fake mail server extend.
+    /// </summary>
+    private static readonly IReadOnlyList<CodeFile> Shared =
+    [
+        .. TinyRepo.All.Select(f => f.Name is "FakeShelf.cs" or "FakeMailServer.cs"
+            ? f with { Text = f.Text.Replace(" { }", " : FakeStore { }") }
+            : f),
+        new("Checks/Motif.Tiny.Fakes/Stores/FakeStore.cs",
+            "public abstract class FakeStore { }\n"),
+    ];
+
+    [Fact]
+    public async Task puts_it_in_a_column_of_its_own()
+    {
+        var graph = await Fixture.Drawn(Shared);
+
+        var shared = graph.Find("fake:FakeStore");
+        shared.Column.Should().Be(Column.SharedFakes);
+        shared.Kind.Should().Be(BubbleKind.Fake);
+        shared.Role.Should().Be("Shared by fakes (FakeStore)");
+    }
+
+    [Fact]
+    public async Task halfway_down_between_the_fakes_that_extend_it()
+    {
+        var graph = await Fixture.Drawn(Shared);
+
+        // The fake mail server is in lane 0, the fake shelf in lane 1.
+        graph.Find("fake:FakeStore").Lane.Should().Be(0.5);
+        graph.Lanes.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task linked_from_each_fake_that_extends_it()
+    {
+        var graph = await Fixture.Drawn(Shared);
+
+        graph.Links.Where(l => l.Kind == LinkKind.Extends)
+            .Select(l => $"{l.From} > {l.To}")
+            .Should().BeEquivalentTo(
+                "fake:FakeMailServer > fake:FakeStore",
+                "fake:FakeShelf > fake:FakeStore");
+    }
+
+    [Fact]
+    public async Task and_neither_wired_up_nor_implementing_a_port()
+    {
+        var graph = await Fixture.Drawn(Shared);
+
+        graph.Links
+            .Where(l => l.From == "fake:FakeStore" || l.To == "fake:FakeStore")
+            .Should().OnlyContain(l => l.Kind == LinkKind.Extends);
+    }
+}

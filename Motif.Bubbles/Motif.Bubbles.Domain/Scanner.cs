@@ -175,25 +175,43 @@ internal static partial class Scanner
 
     /// <summary>
     /// A fake for each file, in the row of the driven port its folder is
-    /// named for.
+    /// named for. A file in a folder named for no port is shared by the
+    /// fakes that name it, in a column of its own, when a port's fake does.
     /// </summary>
     private static IEnumerable<Part> Fakes(
-        string project, IReadOnlyList<CodeFile> files) =>
-        files
-            .Where(f => f.Extension == ".cs")
-            .Select(file =>
+        string project, IReadOnlyList<CodeFile> files)
+    {
+        var code = files.Where(f => f.Extension == ".cs").ToList();
+        string FolderOf(CodeFile file)
+        {
+            var path = Relative(project, file);
+            return path.Contains('/') ? path[..path.IndexOf('/')] : "";
+        }
+        var portFakes = code.Where(f => IsPortName(FolderOf(f))).ToList();
+        foreach (var file in code)
+        {
+            var folder = FolderOf(file);
+            var stem = Stem(file);
+            if (IsPortName(folder))
             {
-                var path = Relative(project, file);
-                var folder = path.Contains('/') ? path[..path.IndexOf('/')] : "";
-                var stem = Stem(file);
-                var row = IsPortName(folder) ? folder : OtherRow;
-                var role = row == OtherRow
-                    ? $"Fake ({stem})"
-                    : $"Fake {Words.Sentence(folder).ToLowerInvariant()}"
-                        + $" ({stem})";
-                return new Part("fake:" + stem, Words.Sentence(stem), role,
-                    BubbleKind.Fake, Column.Fakes, row, [file]);
-            });
+                yield return new Part("fake:" + stem, Words.Sentence(stem),
+                    $"Fake {Words.Sentence(folder).ToLowerInvariant()} ({stem})",
+                    BubbleKind.Fake, Column.Fakes, folder, [file]);
+            }
+            else if (portFakes.Any(f => Names(f, stem)))
+            {
+                yield return new Part("fake:" + stem, Words.Sentence(stem),
+                    $"Shared by fakes ({stem})", BubbleKind.Fake,
+                    Column.SharedFakes, "", [file]);
+            }
+            else
+            {
+                yield return new Part("fake:" + stem, Words.Sentence(stem),
+                    $"Fake ({stem})", BubbleKind.Fake, Column.Fakes, OtherRow,
+                    [file]);
+            }
+        }
+    }
 
     public static string PortId(string port) => "port:" + port;
 
@@ -209,7 +227,7 @@ internal static partial class Scanner
         name.Length > 3 && name.StartsWith("For") && char.IsUpper(name[3])
         && name is not ForDoing and not ForSeeing;
 
-    private static bool Names(CodeFile file, string word) =>
+    public static bool Names(CodeFile file, string word) =>
         Regex.IsMatch(file.Text, $@"\b{Regex.Escape(word)}\b");
 
     private static string Folder(string path) =>
@@ -218,6 +236,6 @@ internal static partial class Scanner
     private static string Relative(string project, CodeFile file) =>
         project == "" ? file.Path : file.Path[(project.Length + 1)..];
 
-    private static string Stem(CodeFile file) =>
+    public static string Stem(CodeFile file) =>
         file.Name[..^file.Extension.Length];
 }

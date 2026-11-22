@@ -17,9 +17,12 @@
                         <path d="M0 1 L9 5 L0 9 z" class="@($"head {kind}")" />
                     </marker>
                 }
-                <marker id="a-implements" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="9" markerHeight="9" orient="auto">
-                    <path d="M1 1 L11 6 L1 11 z" class="head implements" />
-                </marker>
+                @foreach (var kind in new[] { "implements", "extends" })
+                {
+                    <marker id="@($"a-{kind}")" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="9" markerHeight="9" orient="auto">
+                        <path d="M1 1 L11 6 L1 11 z" class="@($"head {kind}")" />
+                    </marker>
+                }
             </defs>
             <g class="viewport">
                 @foreach (var column in drawing.Graph.Columns)
@@ -110,6 +113,7 @@
         <div class="key"><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" class="link checks" /></svg> Checks through</div>
         <div class="key"><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" class="link uses" /></svg> Uses</div>
         <div class="key"><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" class="link implements" /></svg> Implements</div>
+        <div class="key"><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" class="link extends" /></svg> Extends (shared fake code)</div>
         <div class="key"><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" class="link wires" /></svg> Wires up (composition)</div>
         <p class="muted hint">Hover a bubble for all its numbers and to pick out its links. Drag to pan, and scroll to zoom.</p>
 

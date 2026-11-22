@@ -12,6 +12,9 @@ public enum LinkKind
 
     Implements,
 
+    /// <summary>A fake builds on code fakes share.</summary>
+    Extends,
+
     /// <summary>
     /// The composition root, or the specs standing in for it, wires it up.
     /// </summary>

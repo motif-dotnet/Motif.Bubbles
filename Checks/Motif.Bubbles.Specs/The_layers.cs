@@ -31,8 +31,8 @@ public sealed class are_offered
 
         f.Queries.Layers.Select(l => l.Label).Should().Equal(
             "Size by lines of code", "Mutation rings", "Check links",
-            "Uses links", "Implements links", "Wiring links",
-            "Column bands");
+            "Uses links", "Implements links", "Extends links",
+            "Wiring links", "Column bands");
     }
 }
 

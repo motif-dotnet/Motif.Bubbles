@@ -11,6 +11,7 @@ public enum Layer
     Checks,
     Uses,
     Implements,
+    Extends,
     Wires,
     Bands,
 }
@@ -31,6 +32,7 @@ public sealed record LayerChoice(Layer Layer, string Label, bool On)
         new(Layer.Checks, "Check links", true),
         new(Layer.Uses, "Uses links", true),
         new(Layer.Implements, "Implements links", true),
+        new(Layer.Extends, "Extends links", true),
         new(Layer.Wires, "Wiring links", false),
         new(Layer.Bands, "Column bands", true),
     ];
@@ -43,6 +45,7 @@ public sealed record LayerChoice(Layer Layer, string Label, bool On)
         LinkKind.Checks => Layer.Checks,
         LinkKind.Uses => Layer.Uses,
         LinkKind.Implements => Layer.Implements,
+        LinkKind.Extends => Layer.Extends,
         _ => Layer.Wires,
     };
 }

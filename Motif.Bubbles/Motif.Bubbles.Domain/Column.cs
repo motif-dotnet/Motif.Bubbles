@@ -12,6 +12,7 @@ public enum Column
     DrivenPorts,
     RealAdapters,
     Fakes,
+    SharedFakes,
 }
 
 public static class Columns
@@ -26,6 +27,7 @@ public static class Columns
         Column.Application => "Application",
         Column.DrivenPorts => "Driven ports",
         Column.RealAdapters => "Real adapters",
-        _ => "Fakes",
+        Column.Fakes => "Fakes",
+        _ => "Shared fakes",
     };
 }

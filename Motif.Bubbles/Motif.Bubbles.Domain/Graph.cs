@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using static Motif.Bubbles.Scanner;
 
 namespace Motif.Bubbles;
@@ -92,19 +91,31 @@ public sealed record Graph(
                 Add(WebApp, part.Id, LinkKind.Wires);
             if (part.Column == Column.Fakes)
                 Add(Specs, part.Id, LinkKind.Wires);
+            foreach (var fake in ExtendersOf(part, parts))
+                Add(fake.Id, part.Id, LinkKind.Extends);
         }
         return links;
     }
 
     private static bool Mentions(Part part, string word) =>
-        part.Files.Any(f =>
-            Regex.IsMatch(f.Text, $@"\b{Regex.Escape(word)}\b"));
+        part.Files.Any(f => Names(f, word));
+
+    /// <summary>
+    /// The fakes that extend the part, when it's shared by fakes.
+    /// </summary>
+    private static IEnumerable<Part> ExtendersOf(
+        Part part, IEnumerable<Part> parts) =>
+        part.Column == Column.SharedFakes
+            ? parts.Where(p =>
+                p.Column == Column.Fakes && Mentions(p, Stem(part.Files[0])))
+            : [];
 
     /// <summary>
     /// Each driven port's row is as many lanes as it has real adapters or
     /// fakes, whichever is more, and at least one: the port sits in the
     /// middle, the rest one to a lane. The columns to the left spread their
-    /// bubbles evenly down the whole height.
+    /// bubbles evenly down the whole height. Code shared by fakes sits
+    /// halfway down between the fakes that extend it.
     /// </summary>
     private static (Dictionary<Part, double> Of, int Count) Place(
         IReadOnlyList<Part> parts)
@@ -128,7 +139,7 @@ public sealed record Graph(
         }
 
         var left = parts
-            .Where(p => p.Row == "")
+            .Where(p => p.Row == "" && p.Column != Column.SharedFakes)
             .GroupBy(p => p.Column)
             .ToDictionary(g => g.Key, g => g.OrderBy(Order).ToList());
         var tallest = left.Count == 0 ? 0 : left.Values.Max(c => c.Count);
@@ -138,6 +149,8 @@ public sealed record Graph(
             for (var i = 0; i < column.Count; i++)
                 of[column[i]] = (i + 0.5) * count / column.Count - 0.5;
         }
+        foreach (var shared in parts.Where(p => p.Column == Column.SharedFakes))
+            of[shared] = ExtendersOf(shared, parts).Average(p => of[p]);
         return (of, count);
     }
 
