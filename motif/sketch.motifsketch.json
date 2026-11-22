@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "title": "Motif Bubbles",
+  "contextDiagram": {
+    "elements": [
+      {
+        "id": "b0b1a001",
+        "type": "system",
+        "name": "Motif.Bubbles",
+        "description": "Draws a Motif app's architecture as a graph of bubbles, sized by its code and ringed with its Stryker results",
+        "technology": "Blazor WebAssembly (GitHub Pages)",
+        "x": 0,
+        "y": 0,
+        "pinned": false
+      },
+      {
+        "id": "b0b1a002",
+        "type": "primaryActor",
+        "name": "Reviewer",
+        "description": "Opens or drops a Motif repo's folder, or names a public repo, and looks over its architecture and how well its specs check it",
+        "technology": "Web browser",
+        "x": -345,
+        "y": 0,
+        "pinned": false
+      },
+      {
+        "id": "b0b1a003",
+        "type": "externalSystem",
+        "name": "GitHub",
+        "description": "Public repos' code, read from the default branch",
+        "technology": "api.github.com and raw.githubusercontent.com (HTTPS)",
+        "x": 365,
+        "y": -120,
+        "pinned": false
+      },
+      {
+        "id": "b0b1a004",
+        "type": "externalSystem",
+        "name": "GitHub Pages",
+        "description": "Where a repo's CI publishes its latest Stryker report, motif/mutation-report.json",
+        "technology": "HTTPS",
+        "x": 365,
+        "y": 0,
+        "pinned": false
+      },
+      {
+        "id": "b0b1a005",
+        "type": "storage",
+        "name": "Code Folders",
+        "description": "A Motif repo's folder on the Reviewer's computer, opened or dropped in, with the Stryker reports in its StrykerOutput/ folder",
+        "technology": "Local folder (opened or dropped)",
+        "x": 365,
+        "y": 120,
+        "pinned": false
+      }
+    ],
+    "relationships": [
+      {
+        "id": "b0b1b001",
+        "from": "b0b1a002",
+        "to": "b0b1a001",
+        "label": "Opens a repo and looks over its bubbles",
+        "direction": "oneWay"
+      },
+      {
+        "id": "b0b1b002",
+        "from": "b0b1a001",
+        "to": "b0b1a003",
+        "label": "Reads a public repo's code",
+        "direction": "oneWay"
+      },
+      {
+        "id": "b0b1b003",
+        "from": "b0b1a001",
+        "to": "b0b1a004",
+        "label": "Fetches the repo's Stryker report",
+        "direction": "oneWay"
+      },
+      {
+        "id": "b0b1b004",
+        "from": "b0b1a001",
+        "to": "b0b1a005",
+        "label": "Reads a folder's code and Stryker reports",
+        "direction": "oneWay"
+      }
+    ]
+  },
+  "sketch": {
+    "ports": [
+      {
+        "id": "b0b1c001",
+        "name": "User",
+        "side": "driving",
+        "isUser": true,
+        "adapters": [
+          {
+            "id": "b0b1d001",
+            "name": "Web App",
+            "technology": "Blazor WebAssembly UI",
+            "description": "The graph of bubbles, with a toggle per layer, hover for details, and pan and zoom",
+            "kind": "real",
+            "sources": [
+              "b0b1a002"
+            ]
+          },
+          {
+            "id": "b0b1d002",
+            "name": "Specs",
+            "technology": "xUnit",
+            "description": "Checks that drive the application through the User port, over the real adapters with their Fittings faked",
+            "kind": "checks",
+            "sources": []
+          }
+        ]
+      },
+      {
+        "id": "b0b1c002",
+        "name": "For opening repos",
+        "description": "Reads a public repo's code from its default branch, and its latest Stryker report from its Pages site if it has one",
+        "side": "driven",
+        "isUser": false,
+        "adapters": [
+          {
+            "id": "b0b1d003",
+            "name": "GitHub",
+            "technology": "HttpClient (api.github.com, raw.githubusercontent.com and github.io)",
+            "description": "Public repos' code, and the Stryker report their CI publishes to Pages",
+            "kind": "real",
+            "sources": [
+              "b0b1a003",
+              "b0b1a004"
+            ]
+          },
+          {
+            "id": "b0b1d004",
+            "name": "Fake GitHub",
+            "kind": "fake",
+            "sources": []
+          }
+        ]
+      },
+      {
+        "id": "b0b1c003",
+        "name": "For opening folders",
+        "description": "Reads the code in a folder the Reviewer opens or drops in, and the latest Stryker report in its StrykerOutput/ folder",
+        "side": "driven",
+        "isUser": false,
+        "adapters": [
+          {
+            "id": "b0b1d005",
+            "name": "Picker and Drop",
+            "technology": "Folder picker and drag and drop (JS interop)",
+            "description": "A Motif repo's folder on the Reviewer's computer, opened or dropped in",
+            "kind": "real",
+            "seam": "Local Folders",
+            "sources": [
+              "b0b1a005"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
