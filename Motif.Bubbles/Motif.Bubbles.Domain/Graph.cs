@@ -55,16 +55,6 @@ public sealed record Graph(
         return near;
     }
 
-    /// <summary>
-    /// The bubble's own numbers, and how many links reach it and leave it.
-    /// </summary>
-    public IReadOnlyList<Detail> Details(Bubble bubble) =>
-    [
-        .. bubble.Details,
-        new("Depended on by", $"{Links.Count(l => l.To == bubble.Id)}"),
-        new("Depends on", $"{Links.Count(l => l.From == bubble.Id)}"),
-    ];
-
     private static IReadOnlyList<Link> LinksBetween(IReadOnlyList<Part> parts)
     {
         var ids = parts.Select(p => p.Id).ToHashSet();

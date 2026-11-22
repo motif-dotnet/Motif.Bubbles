@@ -92,12 +92,7 @@ public sealed record Bubble(
     {
         get
         {
-            List<Detail> rows =
-            [
-                new("Lines of code", $"{Size.LinesOfCode}"),
-                new("Files", $"{Size.Files}"),
-                new("Types", $"{Size.Types}"),
-            ];
+            List<Detail> rows = [new("Lines of code", $"{Size.LinesOfCode}")];
             if (Specs > 0) rows.Add(new("Specs", $"{Specs}"));
             if (Members > 0)
                 rows.Add(new(Words.Capitalised(MemberWord), $"{Members}"));

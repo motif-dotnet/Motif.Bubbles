@@ -19,7 +19,10 @@ internal sealed record Part(
     int Members = 0,
     string MemberWord = "")
 {
-    public int Specs => Files.Sum(Counting.Specs);
+    // Only specs hold specs: other code can still write "[Fact]", as Motif
+    // Sketch's plan export does.
+    public int Specs =>
+        Kind == BubbleKind.Specs ? Files.Sum(Counting.Specs) : 0;
 
     public Size Size => new(
         Files.Sum(Counting.LinesOfCode), Files.Count, Files.Sum(Counting.Types));

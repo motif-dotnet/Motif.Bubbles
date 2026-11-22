@@ -78,6 +78,21 @@ public sealed class of_specs_counts_them
     }
 }
 
+public sealed class of_other_code_counts_no_specs
+{
+    [Fact]
+    public async Task even_when_its_code_writes_one()
+    {
+        // As Motif Sketch's plan export writes "a single passing `[Fact]`".
+        var graph = await Fixture.Drawn(TinyRepo.With(new CodeFile(
+            "Motif.Tiny/Motif.Tiny.UseCases/Plan.cs",
+            "class Plan { string Text => \"one passing `[Fact]`\"; }\n")));
+
+        graph.Find("Application").Specs.Should().Be(0);
+        graph.Find("Application").Inside.Should().Be("");
+    }
+}
+
 public sealed class of_a_port_counts_its_members
 {
     [Fact]
@@ -273,17 +288,13 @@ public sealed class shows_one_number_inside
 public sealed class shows_its_details
 {
     [Fact]
-    public async Task with_how_many_links_reach_it_and_leave_it()
+    public async Task as_its_lines_of_code_and_what_it_holds()
     {
         var graph = await Fixture.Drawn(TinyRepo.All);
 
-        graph.Details(graph.Find("port:ForStoringOrders")).Should().Equal(
+        graph.Find("port:ForStoringOrders").Details.Should().Equal(
             new Detail("Lines of code", "6"),
-            new Detail("Files", "1"),
-            new Detail("Types", "1"),
             new Detail("Members", "2"),
-            new Detail("Mutation score", "not mutated"),
-            new Detail("Depended on by", "4"),
-            new Detail("Depends on", "0"));
+            new Detail("Mutation score", "not mutated"));
     }
 }

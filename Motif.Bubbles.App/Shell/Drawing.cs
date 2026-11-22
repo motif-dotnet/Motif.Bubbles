@@ -22,7 +22,22 @@ public sealed class Drawing
     // From the bubble's edge to the middle of its ring, which is 5 wide.
     private const double RingGap = 4.5;
 
+    // The smallest holds "100%" inside.
+    private const double SmallestRadius = 20;
+
+    // Below a ringed bubble's middle: its name and stats, to the foot of the
+    // stats line. Above it: its ring's outer edge.
+    private const double Below = 41;
+    private const double Above = 7;
+
+    // Kept clear between a bubble's stats and the bubble a lane below, and
+    // between the rings of bubbles side by side.
+    private const double Clearance = 10;
+    private const double SideClearance = 30;
+
     private readonly Dictionary<Column, int> columns;
+    private readonly int fewestLines;
+    private readonly int mostLines;
     private readonly Dictionary<string, Bubble> byId;
     private readonly bool sized;
     private readonly bool rings;
@@ -34,14 +49,70 @@ public sealed class Drawing
             .Select((column, i) => (column, i))
             .ToDictionary(x => x.column, x => x.i);
         byId = graph.Bubbles.ToDictionary(b => b.Id);
+        var lines = graph.Bubbles.Select(b => b.Size.LinesOfCode)
+            .DefaultIfEmpty().ToList();
+        (fewestLines, mostLines) = (lines.Min(), lines.Max());
         sized = seeing.Shows(Layer.Size);
         rings = seeing.Shows(Layer.Rings);
         HasRings = graph.Bubbles.Any(b => b.Mutation.IsMutated);
         LaneHeight = Math.Max(MinLaneHeight,
             (Width * MinHeightPerWidth - Top) / Math.Max(1, graph.Lanes));
+        BiggestRadius = Math.Max(SmallestRadius, Math.Min(
+            (ColumnWidth - SideClearance) / 2, RoomUpAndDown()));
+    }
+
+    /// <summary>
+    /// The biggest radius that keeps every bubble inside the graph, under
+    /// the column headings, and clear of the next bubble down its column,
+    /// with the rest graded from it.
+    /// </summary>
+    private double RoomUpAndDown()
+    {
+        // A bubble's radius is SmallestRadius + share * (biggest -
+        // SmallestRadius), so room for radii adding up to "room" bounds the
+        // biggest at SmallestRadius + (room - smallest radii) / shares.
+        double Bound(double room, double shares, int bubbles) => shares > 0
+            ? SmallestRadius + (room - bubbles * SmallestRadius) / shares
+            : double.PositiveInfinity;
+
+        var bounds = new List<double>();
+        foreach (var bubble in Graph.Bubbles)
+        {
+            var y = Y(bubble);
+            bounds.Add(Bound(y - Top - Above, Share(bubble), 1));
+            bounds.Add(Bound(Height - y - Below, Share(bubble), 1));
+        }
+        foreach (var column in Graph.Bubbles.GroupBy(b => b.Column))
+        {
+            var down = column.OrderBy(b => b.Lane).ToList();
+            foreach (var (upper, lower) in down.Zip(down.Skip(1)))
+            {
+                bounds.Add(Bound(
+                    Y(lower) - Y(upper) - Below - Above - Clearance,
+                    Share(upper) + Share(lower), 2));
+            }
+        }
+        return bounds.DefaultIfEmpty(double.PositiveInfinity).Min();
+    }
+
+    /// <summary>
+    /// How far the bubble's lines of code are from the graph's fewest (0)
+    /// to its most (1), by their square roots.
+    /// </summary>
+    private double Share(Bubble bubble)
+    {
+        var range = Math.Sqrt(mostLines) - Math.Sqrt(fewestLines);
+        var above = Math.Sqrt(bubble.Size.LinesOfCode) - Math.Sqrt(fewestLines);
+        return range > 0 ? above / range : 0;
     }
 
     public double LaneHeight { get; }
+
+    /// <summary>
+    /// How big the bubble with the most lines of code is: as big as the
+    /// columns and the bubbles above and below leave room for.
+    /// </summary>
+    public double BiggestRadius { get; }
 
     public Graph Graph { get; }
 
@@ -62,12 +133,16 @@ public sealed class Drawing
     public double Y(Bubble bubble) => Top + (bubble.Lane + 0.5) * LaneHeight;
 
     /// <summary>
-    /// Its area stands for its lines of code, with a smallest size so even
-    /// a port can be pointed at.
+    /// Graded by lines of code: the graph's smallest bubble is just big
+    /// enough to hold "100%", its biggest is <see cref="BiggestRadius"/>,
+    /// and the rest fall between, so area still grows with lines of code.
     /// </summary>
-    public double Radius(Bubble bubble) => sized
-        ? Math.Max(15, 1.85 * Math.Sqrt(bubble.Size.LinesOfCode))
-        : 26;
+    public double Radius(Bubble bubble)
+    {
+        if (!sized) return 26;
+        return SmallestRadius
+            + Share(bubble) * (BiggestRadius - SmallestRadius);
+    }
 
     public bool IsRinged(Bubble bubble) => rings && bubble.Mutation.IsMutated;
 

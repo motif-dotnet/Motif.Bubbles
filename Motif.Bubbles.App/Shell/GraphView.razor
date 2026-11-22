@@ -79,7 +79,7 @@
             {
                 <b>@shown.Name</b>
                 <div class="role">@shown.Role</div>
-                @foreach (var detail in drawing.Graph.Details(shown))
+                @foreach (var detail in shown.Details)
                 {
                     <div class="row"><span>@detail.Label</span><span>@detail.Value</span></div>
                 }
