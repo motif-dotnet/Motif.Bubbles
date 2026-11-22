@@ -1,0 +1,19 @@
+{
+  "stryker-config": {
+    "solution": "Motif.Bubbles.Specs.slnx",
+    "mutate": [
+      "!**/Motif.Bubbles.Fakes/**"
+    ],
+    "reporters": [
+      "progress",
+      "cleartext",
+      "html",
+      "json"
+    ],
+    "thresholds": {
+      "high": 80,
+      "low": 60,
+      "break": 0
+    }
+  }
+}

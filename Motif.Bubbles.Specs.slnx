@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="Motif.Bubbles/Motif.Bubbles.Domain/Motif.Bubbles.Domain.csproj" />
+  <Project Path="Motif.Bubbles/Motif.Bubbles.UseCases/Motif.Bubbles.UseCases.csproj" />
+  <Project Path="Adapters/Motif.Bubbles.ForOpeningFolders/Motif.Bubbles.ForOpeningFolders.csproj" />
+  <Project Path="Adapters/Motif.Bubbles.ForOpeningRepos/Motif.Bubbles.ForOpeningRepos.csproj" />
+  <Project Path="Checks/Motif.Bubbles.Fakes/Motif.Bubbles.Fakes.csproj" />
+  <Project Path="Checks/Motif.Bubbles.Specs/Motif.Bubbles.Specs.csproj" />
+</Solution>

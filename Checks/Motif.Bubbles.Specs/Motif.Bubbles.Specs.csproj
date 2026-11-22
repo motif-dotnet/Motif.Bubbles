@@ -27,10 +27,11 @@
 
   <ItemGroup>
     <!-- This repo's own code is a fixture too (motif/README.md): pointed at
-         itself, the app draws itself. -->
+         itself, the app draws itself. Link, not LinkBase, which this
+         project's own files would ignore. -->
     <None Include="..\..\**\*.cs;..\..\**\*.razor;..\..\**\*.js;..\..\**\*.css;..\..\**\*.csproj"
           Exclude="..\..\**\bin\**;..\..\**\obj\**;..\..\**\StrykerOutput\**;..\..\**\TestResults\**"
-          LinkBase="Fixtures\Own\" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+          Link="Fixtures\Own\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
   </ItemGroup>
 
 </Project>

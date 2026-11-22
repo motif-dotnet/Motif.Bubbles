@@ -4,6 +4,12 @@ public enum SourceKind
 {
     None,
     Folder,
+
+    /// <summary>
+    /// Files dropped loose, not in a folder.
+    /// </summary>
+    Files,
+
     Repo,
 }
 
@@ -25,10 +31,12 @@ public sealed record Source(SourceKind Kind, string Name, string Report)
     /// </summary>
     public string About => Kind switch
     {
-        SourceKind.Repo => $"{Name}'s code on its default branch"
-            + (Report == "" ? ", with no Stryker report" : $", with its {Report}"),
-        SourceKind.Folder => $"The {Name} folder"
-            + (Report == "" ? ", with no Stryker report" : $", with its {Report}"),
+        SourceKind.Repo => $"{Name}'s code on its default branch" + WithReport,
+        SourceKind.Folder => $"The {Name} folder" + WithReport,
+        SourceKind.Files => "The files dropped" + WithReport,
         _ => "",
     };
+
+    private string WithReport =>
+        Report == "" ? ", with no Stryker report" : $", with its {Report}";
 }

@@ -15,7 +15,8 @@ namespace Motif.Bubbles.Fakes;
 /// <item>https://raw.githubusercontent.com/owner/name/HEAD/path is 200 with
 /// the file's text, and 404 when it isn't there.</item>
 /// <item>https://owner.github.io/name/path is 200 with a file published to
-/// the repo's Pages site, and 404 when it isn't there.</item>
+/// the repo's Pages site, and 404 when it isn't there. The owner's own repo,
+/// owner.github.io, is served at the site's root.</item>
 /// </list>
 /// Owners and repo names are matched in any case, paths exactly.
 /// </summary>
@@ -130,10 +131,15 @@ public sealed class FakeGitHub : HttpMessageHandler
 
     private Task<HttpResponseMessage> Page(string owner, string[] parts)
     {
+        // The owner's own site, owner.github.io, is served at the root.
+        var own = Key($"{owner}/{owner}.github.io") + "|"
+            + string.Join('/', parts);
+        if (pages.TryGetValue(own, out var text))
+            return Answer(HttpStatusCode.OK, text);
         if (parts is not [var name, .. var path])
             return Answer(HttpStatusCode.NotFound);
         var key = Key($"{owner}/{name}") + "|" + string.Join('/', path);
-        return pages.TryGetValue(key, out var text)
+        return pages.TryGetValue(key, out text)
             ? Answer(HttpStatusCode.OK, text)
             : Answer(HttpStatusCode.NotFound);
     }

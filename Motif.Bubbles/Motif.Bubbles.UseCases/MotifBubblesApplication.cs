@@ -43,8 +43,10 @@ public sealed class MotifBubblesApplication(
     {
         if (folder == OpenedFolder.None) return;
         Overtake();
-        var name = folder.Name == "" ? "those files" : folder.Name;
-        Show(new Source(SourceKind.Folder, name, ""), folder.Files,
+        var source = folder.Name == ""
+            ? new Source(SourceKind.Files, "Files dropped", "")
+            : new Source(SourceKind.Folder, folder.Name, "");
+        Show(source, folder.Files,
             folder.Report, new Note("No mutation rings",
                 "There's no Stryker JSON report in this folder's "
                 + "StrykerOutput/. Run dotnet stryker with the json reporter "
@@ -139,9 +141,17 @@ public sealed class MotifBubblesApplication(
         var graph = Graph.Of(files, report);
         if (graph.Bubbles.Count == 0)
         {
-            var what = source.Kind == SourceKind.Repo ? "repo" : "folder";
-            Problem = Undrawable(what,
-                $"No C# projects in {source.Name}. Open a Motif repo's root "
+            var title = source.Kind switch
+            {
+                SourceKind.Repo => "That repo can't be drawn",
+                SourceKind.Files => "Those files can't be drawn",
+                _ => "That folder can't be drawn",
+            };
+            var where = source.Kind == SourceKind.Files
+                ? "the files dropped"
+                : source.Name;
+            Problem = new Problem(title,
+                $"No C# projects in {where}. Open a Motif repo's root "
                 + "folder, the one with its .sln, or a public Motif repo.");
             return;
         }
