@@ -48,7 +48,6 @@
                     @foreach (var bubble in drawing.Graph.Bubbles)
                     {
                         var (cx, cy, r) = (drawing.X(bubble), drawing.Y(bubble), drawing.Radius(bubble));
-                        var nameY = drawing.NameY(bubble);
                         <g @key="bubble.Id" class="@NodeClass(bubble)" tabindex="0" aria-label="@($"{bubble.Name}: {string.Join(", ", bubble.Details.Select(d => $"{d.Label} {d.Value}"))}")"
                            @onmouseenter="() => Hover(bubble)" @onmouseleave="Unhover"
                            @onfocus="() => Hover(bubble)" @onblur="Unhover">
@@ -62,11 +61,14 @@
                                     }
                                 </g>
                             }
-                            @if (bubble.Count != "")
+                            @foreach (var label in drawing.Inside(bubble))
                             {
-                                <g><text class="count" x="@N(cx)" y="@N(drawing.CountY(bubble))" text-anchor="middle">@bubble.Count</text></g>
+                                <g><text class="@(label.IsName ? "name in" : "count")" x="@N(cx)" y="@N(label.Y)" text-anchor="middle">@label.Text</text></g>
                             }
-                            <text class="@(drawing.NameInside(bubble) ? "name in" : "name")" x="@N(cx)" y="@N(nameY)" text-anchor="middle">@bubble.Name</text>
+                            @if (!drawing.NameInside(bubble))
+                            {
+                                <g><text class="name" x="@N(cx)" y="@N(drawing.NameY(bubble))" text-anchor="middle">@bubble.Name</text></g>
+                            }
                         </g>
                     }
                 </g>

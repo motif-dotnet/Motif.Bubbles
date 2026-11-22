@@ -35,6 +35,11 @@ public sealed class Drawing
     private const double Letter = 7.2;
     private const double Padding = 6;
 
+    // Lines of text inside a bubble, baseline to baseline, and how far a
+    // capital rises above its baseline.
+    private const double LineHeight = 14;
+    private const double CapHeight = 9;
+
     // Kept clear between a bubble's name and the bubble a lane below, and
     // between the rings of bubbles side by side.
     private const double Clearance = 10;
@@ -158,41 +163,76 @@ public sealed class Drawing
         HasRings && bubble.Kind == BubbleKind.Real && !bubble.Mutation.IsMutated;
 
     /// <summary>
-    /// Whether the bubble's name fits inside it, above its count if it has
-    /// one. A name that doesn't is drawn under the bubble.
+    /// What's written inside the bubble, top to bottom, centred on its
+    /// middle: its name, broken into lines at its spaces wherever that
+    /// makes it fit, then its count if it has one.
     /// </summary>
-    public bool NameInside(Bubble bubble)
+    public IReadOnlyList<Label> Inside(Bubble bubble)
     {
-        var r = Radius(bubble);
-        var name = bubble.Name.Length * Letter;
-        if (bubble.Count == "") return Fits(name, r, 5);
-        var count = bubble.Count.Length * Letter;
-        return Fits(name, r, 11) && Fits(count, r, 13);
-    }
-
-    // Whether text this wide fits across the bubble where the text's top or
-    // foot is furthest from the middle.
-    private static bool Fits(double width, double r, double fromMiddle) =>
-        r > fromMiddle
-        && width + 2 * Padding <= 2 * Math.Sqrt(r * r - fromMiddle * fromMiddle);
-
-    /// <summary>
-    /// The baseline of the bubble's name: inside it, above its count if it
-    /// has one, else under it and its ring.
-    /// </summary>
-    public double NameY(Bubble bubble)
-    {
-        if (!NameInside(bubble))
-            return Y(bubble) + Radius(bubble) + (IsRinged(bubble) ? 22 : 17);
-        return Y(bubble) + (bubble.Count == "" ? 4 : -2);
+        var count = bubble.Count == "" ? [] : new[] { bubble.Count };
+        foreach (var name in Ways(bubble.Name))
+        {
+            string[] lines = [.. name, .. count];
+            if (Fit(lines, Radius(bubble)))
+                return Labels(bubble, lines, name.Count);
+        }
+        return Labels(bubble, count, 0);
     }
 
     /// <summary>
-    /// The baseline of the bubble's count: under its name when that's
-    /// inside too, else in its middle.
+    /// Whether the bubble's name is inside it, else under it.
     /// </summary>
-    public double CountY(Bubble bubble) =>
-        Y(bubble) + (NameInside(bubble) ? 13 : 4);
+    public bool NameInside(Bubble bubble) =>
+        Inside(bubble).Any(l => l.IsName);
+
+    /// <summary>
+    /// The baseline of the bubble's name when it's under the bubble and its
+    /// ring.
+    /// </summary>
+    public double NameY(Bubble bubble) =>
+        Y(bubble) + Radius(bubble) + (IsRinged(bubble) ? 22 : 17);
+
+    // The ways to write a name inside a bubble, broken into lines at its
+    // spaces, to try in turn: the fewest lines first, so words stay
+    // together where they can, then the narrowest.
+    private static IEnumerable<IReadOnlyList<string>> Ways(string name) =>
+        Breaks(name.Split(' '))
+            .OrderBy(lines => lines.Count)
+            .ThenBy(lines => lines.Max(line => line.Length));
+
+    // Every way to break the words into lines, keeping their order.
+    private static IEnumerable<IReadOnlyList<string>> Breaks(string[] words)
+    {
+        yield return [string.Join(' ', words)];
+        for (var i = 1; i < words.Length; i++)
+        {
+            var first = string.Join(' ', words[..i]);
+            foreach (var rest in Breaks(words[i..]))
+                yield return [first, .. rest];
+        }
+    }
+
+    // Whether every line fits across the bubble where its top or its
+    // baseline is furthest from the middle.
+    private static bool Fit(IReadOnlyList<string> lines, double r) =>
+        lines.Select((line, i) => (line, i)).All(x =>
+        {
+            var baseline = Baseline(x.i, lines.Count);
+            var far = Math.Max(
+                Math.Abs(baseline), Math.Abs(baseline - CapHeight));
+            return r > far && x.line.Length * Letter + 2 * Padding
+                <= 2 * Math.Sqrt(r * r - far * far);
+        });
+
+    // A line's baseline below the bubble's middle, with the lines centred
+    // on it.
+    private static double Baseline(int line, int lines) =>
+        (line - lines / 2.0) * LineHeight + (LineHeight + CapHeight) / 2;
+
+    private IReadOnlyList<Label> Labels(
+        Bubble bubble, IReadOnlyList<string> lines, int nameLines) =>
+        [.. lines.Select((line, i) => new Label(
+            line, Y(bubble) + Baseline(i, lines.Count), i < nameLines))];
 
     /// <summary>
     /// The ring's arcs, clockwise from the top: caught, survived, then
@@ -269,3 +309,9 @@ public sealed class Drawing
 /// stands for: "caught", "survived" or "unreached".
 /// </summary>
 public sealed record Arc(string Path, string Part);
+
+/// <summary>
+/// One line written inside a bubble, at its baseline: part of its name, or
+/// its count.
+/// </summary>
+public sealed record Label(string Text, double Y, bool IsName);
