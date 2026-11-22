@@ -35,7 +35,10 @@ button.way:hover { border-color: var(--accent); }
 .graph { flex: 1; min-width: 0; position: relative; overflow: hidden; }
 .graph svg.bubbles { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; user-select: none; }
 .graph.panning svg.bubbles { cursor: grabbing; }
-.graph .fit { position: absolute; right: 10px; bottom: 10px; background: var(--bar); border: 1px solid var(--line); }
+.graph .fit, .graph .side-toggle { position: absolute; right: 10px; background: var(--bar); border: 1px solid var(--line); }
+.graph .fit { bottom: 10px; }
+.graph .side-toggle { top: 10px; }
+.graph .side-toggle.on { color: var(--accent); }
 .side { width: 250px; flex: none; border-left: 1px solid var(--line); background: var(--strip); padding: 14px 16px; overflow: auto; }
 .side h3 { margin: 14px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
 .side h3:first-child { margin-top: 0; }

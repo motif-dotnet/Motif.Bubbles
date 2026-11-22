@@ -75,6 +75,9 @@
             </g>
         </svg>
         <button class="cmd icon fit" title="Show the whole graph" @onclick="Fit">@Icons.Fit</button>
+        <button class="@(sideOpen ? "cmd icon side-toggle on" : "cmd icon side-toggle")"
+                title="@(sideOpen ? "Hide the layers and key" : "Show the layers and key")"
+                aria-expanded="@(sideOpen ? "true" : "false")" @onclick="() => sideOpen = !sideOpen">@Icons.Panel</button>
         <div class="tip" style="@(hovered == "" ? "display:none" : "")">
             @if (hovered != "" && drawing.Graph.Bubbles.FirstOrDefault(b => b.Id == hovered) is { } shown)
             {
@@ -87,6 +90,8 @@
             }
         </div>
     </div>
+    @if (sideOpen)
+    {
     <aside class="side">
         <h3>Layers</h3>
         @foreach (var choice in Seeing.Layers)
@@ -126,6 +131,7 @@
             <button class="ghost small" @onclick="CopyRepoLink">@SuiteIcons.Link @(Copied ? "Copied" : "Copy link")</button>
         }
     </aside>
+    }
 </div>
 
 @code {
@@ -133,6 +139,9 @@
     private string hovered = "";
     private IReadOnlySet<string> near = new HashSet<string>();
     private bool panning;
+
+    // Closed at first, so the graph gets the whole width.
+    private bool sideOpen;
 
     [Parameter, EditorRequired] public ForSeeing Seeing { get; set; } = null!;
 
