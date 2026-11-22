@@ -47,12 +47,19 @@ public sealed class Modes(Site site)
                     await site.Open(profile, "#repo=" + Site.ThisRepo));
             default:
                 var page = await site.Open(profile);
+                // Edge on Linux won't open its picker in a window under 400
+                // px wide, so the folder is picked wide and the page then
+                // narrowed back to the width being checked.
+                var size = page.ViewportSize!;
+                await page.SetViewportSizeAsync(1280, size.Height);
                 // The picker is the browser's own, so a spec can't drive it:
                 // it hands over the folder instead, as the Reviewer would.
                 var chooser = await page.RunAndWaitForFileChooserAsync(
                     () => page.Locator("button.way").ClickAsync());
                 await chooser.SetFilesAsync(Site.Folder);
-                return await Drawn(page);
+                await Drawn(page);
+                await page.SetViewportSizeAsync(size.Width, size.Height);
+                return page;
         }
     }
 
