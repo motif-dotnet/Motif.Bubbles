@@ -16,11 +16,11 @@ The design is in the [Motif Bubbles design note](https://github.com/motif-dotnet
 
 ![Motif Bubbles ports-and-adapters sketch](motif/diagrams/ports-and-adapters.svg)
 
-These pictures are exported by [Motif Sketch](https://motif-dotnet.github.io/Motif.Sketch/) from [motif/sketch.motifsketch.json](motif/sketch.motifsketch.json). The [motif/](motif/) folder holds the design, the [solution plan](motif/plan.md) and the [glossary](motif/glossary.md).
+These pictures are exported by [Motif Sketch](https://motif-dotnet.github.io/Motif.Sketch/) from [motif/sketch.motifsketch.json](motif/sketch.motifsketch.json). The [motif/](motif/) folder holds the design, the [solution plan](motif/plan.md) and the [glossary](motif/glossary.md). The decisions made while building it are in [decisions.md](decisions.md).
 
 ## Status
 
-**v1, preview.** Two ways in:
+**Trial: v1, preview.** Two ways in:
 
 - **Open or drop a folder:** a Motif repo's root folder. Its rings come from the latest Stryker report in its `StrykerOutput/` folder.
 - **A public GitHub repo** (`owner/name`, or a github.com address), read from its default branch, with a shareable `#repo=owner/name` link. Its rings come from the report its CI publishes to its Pages site, at `motif/mutation-report.json`.
@@ -39,9 +39,14 @@ You need the .NET 10 SDK.
 
 ```
 dotnet run --project Motif.Bubbles.App    # the app
-dotnet test                               # the specs
+dotnet test                               # the specs, then the browser specs in Edge
+dotnet test Checks/Motif.Bubbles.Specs    # the specs alone
 dotnet tool restore && dotnet stryker     # mutation testing of the specs
 ```
+
+The browser specs publish the app, serve it and open it in Edge. `MOTIF_BROWSER` picks another browser, such as `chrome`, and `MOTIF_SITE` names a folder the app is already published to. They cover the layout at each width, the side panel, and both ways in: a folder picked in the browser's real picker, and a repo from its link, with GitHub standing in. Dropping and the real GitHub are checked by hand, with [docs/manual-checks.md](docs/manual-checks.md).
+
+Every push to `main`, and every pull request, runs [.github/workflows/pages.yml](.github/workflows/pages.yml): it builds with warnings as errors, runs the specs, publishes, and runs the browser specs against what it published, keeping their traces when they fail. A change to the top-level `.md` files alone doesn't run it.
 
 Mutation testing uses [Stryker.NET](https://stryker-mutator.io/docs/stryker-net/introduction/), a .NET tool pinned in [dotnet-tools.json](dotnet-tools.json), set up by [stryker-config.json](stryker-config.json) over [Motif.Bubbles.Specs.slnx](Motif.Bubbles.Specs.slnx), so the browser specs stay out. It changes the code under the specs a little at a time and checks a spec fails each time. The reports are written to `StrykerOutput/`, where opening this folder in Motif Bubbles finds the latest one.
 
