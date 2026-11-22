@@ -46,7 +46,7 @@
                     {
                         var (cx, cy, r) = (drawing.X(bubble), drawing.Y(bubble), drawing.Radius(bubble));
                         var nameY = drawing.NameY(bubble);
-                        <g @key="bubble.Id" class="@NodeClass(bubble)" tabindex="0" aria-label="@($"{bubble.Name}: {bubble.Stats}")"
+                        <g @key="bubble.Id" class="@NodeClass(bubble)" tabindex="0" aria-label="@($"{bubble.Name}: {string.Join(", ", bubble.Details.Select(d => $"{d.Label} {d.Value}"))}")"
                            @onmouseenter="() => Hover(bubble)" @onmouseleave="Unhover"
                            @onfocus="() => Hover(bubble)" @onblur="Unhover">
                             <circle class="body" cx="@N(cx)" cy="@N(cy)" r="@N(r)" />
@@ -59,15 +59,11 @@
                                     }
                                 </g>
                             }
-                            @if (Seeing.Shows(Layer.Inside) && bubble.Inside != "")
+                            @if (bubble.Count != "")
                             {
-                                <g><text class="inside" x="@N(cx)" y="@N(cy + 4)" text-anchor="middle">@bubble.Inside</text></g>
+                                <g><text class="count" x="@N(cx)" y="@N(drawing.CountY(bubble))" text-anchor="middle">@bubble.Count</text></g>
                             }
-                            <text class="name" x="@N(cx)" y="@N(nameY)" text-anchor="middle">@bubble.Name</text>
-                            @if (Seeing.Shows(Layer.Stats))
-                            {
-                                <g><text class="stat" x="@N(cx)" y="@N(nameY + 15)" text-anchor="middle">@bubble.Stats</text></g>
-                            }
+                            <text class="@(drawing.NameInside(bubble) ? "name in" : "name")" x="@N(cx)" y="@N(nameY)" text-anchor="middle">@bubble.Name</text>
                         </g>
                     }
                 </g>

@@ -58,22 +58,22 @@ public sealed class counts_the_mutants_in_its_bubbles_files
 public sealed class shows_its_score
 {
     [Fact]
-    public async Task inside_its_bubble_as_a_whole_percentage()
+    public async Task as_a_whole_percentage()
     {
         var graph = await Ringed.Drawn(new Stryker()
             .Mutated(TinyRepo.Order, killed: 2, survived: 1));
 
-        graph.Find("Domain").Inside.Should().Be("67%");
+        graph.Find("Domain").Details.Should().Contain(
+            new Detail("Mutation score", "67%"));
     }
 
     [Fact]
-    public async Task with_what_got_away_under_its_name()
+    public async Task in_its_ring_not_inside_its_bubble()
     {
         var graph = await Ringed.Drawn(new Stryker()
-            .Mutated(TinyRepo.Order, killed: 8, survived: 1, noCoverage: 2));
+            .Mutated(TinyRepo.Order, killed: 2, survived: 1));
 
-        graph.Find("Domain").Stats.Should().Be(
-            "7 loc · 1 survived · 2 unreached");
+        graph.Find("Domain").Count.Should().Be("");
     }
 
     [Fact]

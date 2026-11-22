@@ -22,15 +22,20 @@ public sealed class Drawing
     // From the bubble's edge to the middle of its ring, which is 5 wide.
     private const double RingGap = 4.5;
 
-    // The smallest holds "100%" inside.
+    // The smallest holds a two-figure count, such as "×79", inside.
     private const double SmallestRadius = 20;
 
-    // Below a ringed bubble's middle: its name and stats, to the foot of the
-    // stats line. Above it: its ring's outer edge.
-    private const double Below = 41;
+    // Below a ringed bubble's edge: its name, when that's under it, to the
+    // foot of its letters. Above it: its ring's outer edge.
+    private const double Below = 26;
     private const double Above = 7;
 
-    // Kept clear between a bubble's stats and the bubble a lane below, and
+    // How wide a letter of a name or a count is, at most on average, and
+    // how much of a bubble is kept clear each side of what's inside.
+    private const double Letter = 7.2;
+    private const double Padding = 6;
+
+    // Kept clear between a bubble's name and the bubble a lane below, and
     // between the rings of bubbles side by side.
     private const double Clearance = 10;
     private const double SideClearance = 30;
@@ -134,7 +139,7 @@ public sealed class Drawing
 
     /// <summary>
     /// Graded by lines of code: the graph's smallest bubble is just big
-    /// enough to hold "100%", its biggest is <see cref="BiggestRadius"/>,
+    /// enough to hold its count, its biggest is <see cref="BiggestRadius"/>,
     /// and the rest fall between, so area still grows with lines of code.
     /// </summary>
     public double Radius(Bubble bubble)
@@ -153,10 +158,41 @@ public sealed class Drawing
         HasRings && bubble.Kind == BubbleKind.Real && !bubble.Mutation.IsMutated;
 
     /// <summary>
-    /// The baseline of the bubble's name, under it and its ring.
+    /// Whether the bubble's name fits inside it, above its count if it has
+    /// one. A name that doesn't is drawn under the bubble.
     /// </summary>
-    public double NameY(Bubble bubble) =>
-        Y(bubble) + Radius(bubble) + (IsRinged(bubble) ? 22 : 17);
+    public bool NameInside(Bubble bubble)
+    {
+        var r = Radius(bubble);
+        var name = bubble.Name.Length * Letter;
+        if (bubble.Count == "") return Fits(name, r, 5);
+        var count = bubble.Count.Length * Letter;
+        return Fits(name, r, 11) && Fits(count, r, 13);
+    }
+
+    // Whether text this wide fits across the bubble where the text's top or
+    // foot is furthest from the middle.
+    private static bool Fits(double width, double r, double fromMiddle) =>
+        r > fromMiddle
+        && width + 2 * Padding <= 2 * Math.Sqrt(r * r - fromMiddle * fromMiddle);
+
+    /// <summary>
+    /// The baseline of the bubble's name: inside it, above its count if it
+    /// has one, else under it and its ring.
+    /// </summary>
+    public double NameY(Bubble bubble)
+    {
+        if (!NameInside(bubble))
+            return Y(bubble) + Radius(bubble) + (IsRinged(bubble) ? 22 : 17);
+        return Y(bubble) + (bubble.Count == "" ? 4 : -2);
+    }
+
+    /// <summary>
+    /// The baseline of the bubble's count: under its name when that's
+    /// inside too, else in its middle.
+    /// </summary>
+    public double CountY(Bubble bubble) =>
+        Y(bubble) + (NameInside(bubble) ? 13 : 4);
 
     /// <summary>
     /// The ring's arcs, clockwise from the top: caught, survived, then

@@ -30,9 +30,9 @@ public sealed class are_offered
         var f = new Fixture();
 
         f.Queries.Layers.Select(l => l.Label).Should().Equal(
-            "Size by lines of code", "Mutation rings", "Numbers inside",
-            "Stats under names", "Check links", "Uses links",
-            "Implements links", "Wiring links", "Column bands");
+            "Size by lines of code", "Mutation rings", "Check links",
+            "Uses links", "Implements links", "Wiring links",
+            "Column bands");
     }
 }
 

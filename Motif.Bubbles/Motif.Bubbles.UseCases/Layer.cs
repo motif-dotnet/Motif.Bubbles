@@ -8,8 +8,6 @@ public enum Layer
 {
     Size,
     Rings,
-    Inside,
-    Stats,
     Checks,
     Uses,
     Implements,
@@ -30,8 +28,6 @@ public sealed record LayerChoice(Layer Layer, string Label, bool On)
     [
         new(Layer.Size, "Size by lines of code", true),
         new(Layer.Rings, "Mutation rings", true),
-        new(Layer.Inside, "Numbers inside", true),
-        new(Layer.Stats, "Stats under names", true),
         new(Layer.Checks, "Check links", true),
         new(Layer.Uses, "Uses links", true),
         new(Layer.Implements, "Implements links", true),

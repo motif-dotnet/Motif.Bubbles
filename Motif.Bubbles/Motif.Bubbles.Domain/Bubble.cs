@@ -59,31 +59,14 @@ public sealed record Bubble(
     Mutation Mutation)
 {
     /// <summary>
-    /// The one number shown inside: its mutation score, else how many specs
-    /// or members it has. Empty when there's none to show.
+    /// How many specs or members it has, as shown inside it, such as "×79":
+    /// the one number the rest of the graph doesn't show, as its size shows
+    /// its lines of code and its ring its mutants. Empty when it has none.
     /// </summary>
-    public string Inside =>
-        Mutation.IsMutated ? $"{Mutation.Score}%"
-        : Specs > 0 ? $"{Specs}"
-        : Members > 0 ? $"{Members}"
+    public string Count =>
+        Specs > 0 ? $"×{Specs}"
+        : Members > 0 ? $"×{Members}"
         : "";
-
-    /// <summary>
-    /// The short line of numbers shown under its name.
-    /// </summary>
-    public string Stats
-    {
-        get
-        {
-            List<string> bits = [$"{Size.LinesOfCode} loc"];
-            if (Specs > 0) bits.Add($"{Specs} specs");
-            if (Members > 0) bits.Add($"{Members} {MemberWord}");
-            if (Mutation.Survived > 0) bits.Add($"{Mutation.Survived} survived");
-            if (Mutation.Unreached > 0)
-                bits.Add($"{Mutation.Unreached} unreached");
-            return string.Join(" · ", bits);
-        }
-    }
 
     /// <summary>
     /// Every number it has, as hovering shows them.

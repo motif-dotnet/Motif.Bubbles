@@ -47,9 +47,10 @@ button.way:hover { border-color: var(--accent); }
 .col-head { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; fill: var(--muted); }
 .band { fill: var(--strip); }
 .name { font-size: 12.5px; font-weight: 600; fill: var(--ink); }
-.stat { font-size: 11px; fill: var(--muted); font-family: "IBM Plex Mono", Consolas, monospace; }
-.inside { font-size: 12px; font-weight: 600; fill: var(--ink); font-family: "IBM Plex Mono", Consolas, monospace; pointer-events: none; }
-.name, .stat { paint-order: stroke; stroke: var(--canvas); stroke-width: 4px; stroke-linejoin: round; }
+.count { font-size: 12px; font-weight: 600; fill: var(--ink); font-family: "IBM Plex Mono", Consolas, monospace; pointer-events: none; }
+/* Under a bubble, a halo keeps the name clear of the links that cross it */
+.name { paint-order: stroke; stroke: var(--canvas); stroke-width: 4px; stroke-linejoin: round; }
+.name.in { stroke: none; pointer-events: none; }
 .node { cursor: default; outline: none; }
 .node .body, .k-real { fill: var(--card); stroke: var(--line-strong); stroke-width: 1.5; }
 .node.port .body, .k-port { fill: var(--canvas); stroke: var(--text); stroke-width: 1.5; }

@@ -89,7 +89,7 @@ public sealed class of_other_code_counts_no_specs
             "class Plan { string Text => \"one passing `[Fact]`\"; }\n")));
 
         graph.Find("Application").Specs.Should().Be(0);
-        graph.Find("Application").Inside.Should().Be("");
+        graph.Find("Application").Count.Should().Be("");
     }
 }
 
@@ -157,10 +157,12 @@ public sealed class of_a_port_counts_its_members
     {
         var graph = await Fixture.Drawn(TinyRepo.All);
 
-        graph.Find("UserTasks").Stats.Should().Be("7 loc · 2 tasks");
-        graph.Find("UserQueries").Stats.Should().Be("5 loc · 1 queries");
-        graph.Find("port:ForSendingMail").Stats.Should().Be(
-            "5 loc · 1 members");
+        graph.Find("UserTasks").Details.Should().Contain(
+            new Detail("Tasks", "2"));
+        graph.Find("UserQueries").Details.Should().Contain(
+            new Detail("Queries", "1"));
+        graph.Find("port:ForSendingMail").Details.Should().Contain(
+            new Detail("Members", "1"));
     }
 }
 
@@ -272,16 +274,23 @@ public sealed class of_an_adapter_project_with_two_ways
     }
 }
 
-public sealed class shows_one_number_inside
+public sealed class shows_a_count_inside
 {
     [Fact]
-    public async Task its_specs_or_its_members()
+    public async Task of_its_specs_or_its_members()
     {
         var graph = await Fixture.Drawn(TinyRepo.All);
 
-        graph.Find("Specs").Inside.Should().Be("3");
-        graph.Find("UserTasks").Inside.Should().Be("2");
-        graph.Find("Domain").Inside.Should().Be("");
+        graph.Find("Specs").Count.Should().Be("×3");
+        graph.Find("UserTasks").Count.Should().Be("×2");
+    }
+
+    [Fact]
+    public async Task only_when_it_has_specs_or_members()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.All);
+
+        graph.Find("Domain").Count.Should().Be("");
     }
 }
 
