@@ -45,6 +45,14 @@ public sealed class is_drawn_as_a_bubble_for_each_architectural_object
             Column.Driving, Column.UserPort, Column.Application,
             Column.DrivenPorts, Column.RealAdapters);
     }
+
+    [Fact]
+    public void each_headed_in_words()
+    {
+        Columns.All.Select(c => c.Heading()).Should().Equal(
+            "Browser checks", "Driving", "User port", "Application",
+            "Driven ports", "Real adapters", "Fakes", "Shared fakes");
+    }
 }
 
 public sealed class has_a_row_for_each_driven_port
@@ -372,6 +380,15 @@ public sealed class leaves_out
             - 2 // the web kit's copy
             - 1); // docs/Example.cs
     }
+
+    [Fact]
+    public async Task files_in_a_folder_whose_name_only_starts_as_a_projects()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.With(new CodeFile(
+            "Motif.Tiny/Motif.Tiny.Domain.Notes/Note.cs", "class Note { }\n")));
+
+        graph.Find("Domain").Size.Files.Should().Be(1);
+    }
 }
 
 public sealed class with_a_project_named_for_no_part
@@ -428,6 +445,53 @@ public sealed class with_fakes_in_a_folder_named_for_no_port
                 "class FixedClock { }\n")));
 
         graph.Find("fake:FixedClock").Lane.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task or_in_one_whose_name_only_looks_like_a_ports()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.With(
+            new CodeFile("Checks/Motif.Tiny.Fakes/OldClocks/FixedClock.cs",
+                "class FixedClock { }\n")));
+
+        graph.Find("fake:FixedClock").Role.Should().Be("Fake (FixedClock)");
+    }
+}
+
+public sealed class with_its_Fakes_project_at_the_root
+{
+    [Fact]
+    public async Task puts_each_fake_in_the_row_of_its_port()
+    {
+        var graph = await Fixture.Drawn(
+        [
+            new("X.UseCases/X.UseCases.csproj", "<Project />"),
+            new("X.UseCases/Ports/ForPaying.cs", "interface ForPaying { }\n"),
+            new("X.Fakes.csproj", "<Project />"),
+            new("ForPaying/FakePayments.cs", "class FakePayments { }\n"),
+        ]);
+
+        graph.Find("fake:FakePayments").Role.Should().Be(
+            "Fake for paying (FakePayments)");
+    }
+}
+
+public sealed class with_an_adapter_file_named_for_its_port_but_no_way
+{
+    [Fact]
+    public async Task draws_it_as_part_of_the_adapter_not_one_of_its_own()
+    {
+        var graph = await Fixture.Drawn(
+        [
+            new("Adapters/X.ForSaving/X.ForSaving.csproj", "<Project />"),
+            new("Adapters/X.ForSaving/ForSavingViaFolder.cs",
+                "class ForSavingViaFolder { }\n"),
+            new("Adapters/X.ForSaving/ForSavingOptions.cs",
+                "class ForSavingOptions { }\n"),
+        ]);
+
+        graph.Bubbles.Select(b => b.Id).Should().Equal(
+            "adapter:ForSavingViaFolder");
     }
 }
 

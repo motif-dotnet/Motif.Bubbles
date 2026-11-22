@@ -138,6 +138,29 @@ public sealed class with_Stryker_reports
 
         f.Queries.Graph.Find("Domain").Mutation.Should().Be(Mutation.None);
     }
+
+    [Fact]
+    public async Task from_a_run_not_named_for_its_time_says_only_that()
+    {
+        var f = await Fixture.Picked(TinyRepo.With(
+            new Stryker().Mutated(TinyRepo.Order, killed: 1).In("nightly")));
+
+        f.Queries.Source.Report.Should().Be("Stryker report");
+    }
+}
+
+public sealed class with_a_Stryker_report_of_no_mutants
+{
+    [Fact]
+    public async Task has_no_rings_and_says_nothing()
+    {
+        var f = await Fixture.Picked(TinyRepo.With(
+            new Stryker().In("2026-11-21.19-17-41")));
+
+        f.Queries.Graph.Bubbles.Should().OnlyContain(
+            b => b.Mutation == Mutation.None);
+        f.Queries.RingsNote.Should().Be(Note.None);
+    }
 }
 
 public sealed class with_no_Stryker_report

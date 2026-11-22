@@ -153,6 +153,24 @@ public sealed class of_a_port_counts_its_members
     }
 
     [Fact]
+    public async Task with_some_after_a_property()
+    {
+        var port = new CodeFile(
+            "Motif.Tiny/Motif.Tiny.UseCases/Ports/ForPaying.cs",
+            """
+            public interface ForPaying {
+                bool CanPay { get; }
+                Task Pay(int pence);
+                Task Refund(int pence);
+            }
+            """);
+
+        var graph = await Fixture.Drawn(TinyRepo.With(port));
+
+        graph.Find("port:ForPaying").Members.Should().Be(3);
+    }
+
+    [Fact]
     public async Task in_its_own_words()
     {
         var graph = await Fixture.Drawn(TinyRepo.All);
@@ -202,6 +220,17 @@ public sealed class is_named
     }
 
     [Fact]
+    public async Task for_the_first_Application_by_name_when_there_are_several()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.With(new CodeFile(
+            "Motif.Tiny/Motif.Tiny.UseCases/AdminApplication.cs",
+            "public sealed class AdminApplication { }\n")));
+
+        graph.Find("Application").Role.Should().Be(
+            "Use cases (AdminApplication)");
+    }
+
+    [Fact]
     public async Task as_a_library_by_its_project()
     {
         var graph = await Fixture.Drawn(
@@ -219,6 +248,8 @@ public sealed class is_named
     [InlineData("ForSavingViaGitHub", "GitHub")]
     [InlineData("ForSavingViaJavaScriptAndWebAssembly",
         "JavaScript and WebAssembly")]
+    [InlineData("ForSavingViaPlainHTTP", "Plain HTTP")]
+    [InlineData("ForPrintingViaPageAtATime", "Page at a time")]
     public async Task with_the_way_after_Via_in_words(string type, string name)
     {
         var port = type[..type.IndexOf("Via")];
@@ -304,6 +335,24 @@ public sealed class shows_its_details
         graph.Find("port:ForStoringOrders").Details.Should().Equal(
             new Detail("Lines of code", "6"),
             new Detail("Members", "2"),
+            new Detail("Mutation score", "not mutated"));
+    }
+
+    [Fact]
+    public async Task with_its_specs()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.All);
+
+        graph.Find("Specs").Details.Should().Contain(new Detail("Specs", "3"));
+    }
+
+    [Fact]
+    public async Task leaving_out_counts_it_has_none_of()
+    {
+        var graph = await Fixture.Drawn(TinyRepo.All);
+
+        graph.Find("Domain").Details.Should().Equal(
+            new Detail("Lines of code", "7"),
             new Detail("Mutation score", "not mutated"));
     }
 }

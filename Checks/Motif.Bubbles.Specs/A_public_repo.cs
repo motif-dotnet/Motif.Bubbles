@@ -89,6 +89,7 @@ public sealed class named_as_no_repo_can_be
     [InlineData("https://github.com/motif-dotnet")]
     [InlineData("-motif/Motif.Tiny")]
     [InlineData("motif-dotnet/..")]
+    [InlineData("motif-dotnet/.")]
     [InlineData("motif-dotnet/Motif Tiny")]
     public async Task cannot_be_drawn(string repo)
     {
@@ -149,6 +150,22 @@ public sealed class still_being_read
         await Task.WhenAll(first, second);
 
         f.Queries.Repo.Should().Be("motif-dotnet/Motif.Other");
+    }
+
+    [Fact]
+    public async Task is_dropped_when_a_wrong_repo_name_is_given_meanwhile()
+    {
+        var f = Tiny.Committed();
+        f.GitHub.Hold();
+        var reading = f.Tasks.OpenRepo(Tiny.Repo);
+
+        await f.Tasks.OpenRepo("not a repo");
+        f.Queries.Loading.Should().BeFalse();
+        f.GitHub.Release();
+        await reading;
+
+        f.Queries.Graph.Should().Be(Graph.None);
+        f.Queries.Loading.Should().BeFalse();
     }
 }
 
@@ -309,6 +326,37 @@ public sealed class when_GitHub_cannot_be_reached
             + "fetch)."));
         f.Queries.Source.Name.Should().Be("Motif.Tiny");
         f.Queries.Loading.Should().BeFalse();
+    }
+}
+
+public sealed class when_GitHub_answers_with_an_error
+{
+    [Theory]
+    [InlineData("api.github.com")]
+    [InlineData("raw.githubusercontent.com")]
+    public async Task cannot_be_drawn_and_leaves_what_was_open(string host)
+    {
+        var f = await Fixture.Picked(TinyRepo.All);
+        f.GitHub.Commit(Tiny.Repo, TinyRepo.All).Fail(host);
+
+        await f.Tasks.OpenRepo(Tiny.Repo);
+
+        f.Queries.Problem.Title.Should().Be("That repo can't be drawn");
+        f.Queries.Problem.Text.Should().StartWith(
+            "GitHub couldn't be reached for motif-dotnet/Motif.Tiny");
+        f.Queries.Source.Name.Should().Be("Motif.Tiny");
+    }
+
+    [Fact]
+    public async Task from_its_Pages_site_has_no_rings_and_says_so()
+    {
+        var f = Tiny.Committed();
+        f.GitHub.Fail("motif-dotnet.github.io");
+
+        await f.Tasks.OpenRepo(Tiny.Repo);
+
+        f.Queries.Graph.Should().NotBe(Graph.None);
+        f.Queries.RingsNote.Title.Should().Be("No mutation rings");
     }
 }
 

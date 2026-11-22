@@ -53,6 +53,17 @@ public sealed class counts_the_mutants_in_its_bubbles_files
 
         graph.Find("Application").Mutation.Should().Be(new Mutation(7, 4, 1));
     }
+
+    [Fact]
+    public async Task and_none_of_a_file_whose_path_only_ends_the_same()
+    {
+        var elsewhere = TinyRepo.Order with { Path = "Big" + TinyRepo.Order.Path };
+
+        var graph = await Ringed.Drawn(new Stryker()
+            .Mutated(elsewhere, killed: 3));
+
+        graph.Find("Domain").Mutation.Should().Be(Mutation.None);
+    }
 }
 
 public sealed class shows_its_score

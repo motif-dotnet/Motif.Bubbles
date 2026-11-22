@@ -18,12 +18,14 @@ namespace Motif.Bubbles.Fakes;
 /// the repo's Pages site, and 404 when it isn't there. The owner's own repo,
 /// owner.github.io, is served at the site's root.</item>
 /// </list>
-/// Owners and repo names are matched in any case, paths exactly.
+/// Owners and repo names are matched in any case, paths exactly. A host
+/// can be made to fail, answering everything with a 500.
 /// </summary>
 public sealed class FakeGitHub : HttpMessageHandler
 {
     private readonly Dictionary<string, Dictionary<string, string>> repos = [];
     private readonly Dictionary<string, string> pages = [];
+    private readonly HashSet<string> failing = [];
 
     /// <summary>
     /// Every request fails as a browser's fetch does with no network.
@@ -71,6 +73,16 @@ public sealed class FakeGitHub : HttpMessageHandler
     }
 
     /// <summary>
+    /// Answers every request to this host with a 500, as a server in
+    /// trouble does.
+    /// </summary>
+    public FakeGitHub Fail(string host)
+    {
+        failing.Add(host);
+        return this;
+    }
+
+    /// <summary>
     /// Holds every answer back until <see cref="Release"/>, as a slow network
     /// would.
     /// </summary>
@@ -91,7 +103,13 @@ public sealed class FakeGitHub : HttpMessageHandler
         if (Unreachable) throw new HttpRequestException("Failed to fetch");
         if (request.Method != HttpMethod.Get || url.Scheme != "https")
             return await Answer(HttpStatusCode.NotFound);
-        var parts = url.AbsolutePath.TrimStart('/').Split('/')
+        if (failing.Contains(url.Host))
+        {
+            return await Answer(
+                HttpStatusCode.InternalServerError, "Internal Server Error");
+        }
+        // Only the one slash: GitHub finds nothing at //owner/name.
+        var parts = url.AbsolutePath[1..].Split('/')
             .Select(Uri.UnescapeDataString)
             .ToArray();
         return await (url.Host switch
@@ -154,13 +172,18 @@ public sealed class FakeGitHub : HttpMessageHandler
         if (parts is not [var name, .. var path]
             || name.Equals($"{owner}.github.io", StringComparison.OrdinalIgnoreCase))
         {
-            return Answer(HttpStatusCode.NotFound);
+            return PageNotFound();
         }
         var key = Key($"{owner}/{name}") + "|" + string.Join('/', path);
         return pages.TryGetValue(key, out text)
             ? Answer(HttpStatusCode.OK, text)
-            : Answer(HttpStatusCode.NotFound);
+            : PageNotFound();
     }
+
+    // Pages answers a missing file with its own HTML page, not nothing.
+    private static Task<HttpResponseMessage> PageNotFound() =>
+        Answer(HttpStatusCode.NotFound,
+            "<!DOCTYPE html><title>Page not found · GitHub Pages</title>");
 
     private Dictionary<string, string> Repo(string repo)
     {
